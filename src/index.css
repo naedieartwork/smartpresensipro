@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f9fafb; /* bg-gray-50 */
+    color: #111827; /* text-gray-900 */
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Apple Frosted Glass Utilities (iOS Minimalist Light Theme) */
+.ios-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.ios-glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+.ios-glass-sheet {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-top: 1px solid rgba(229, 231, 235, 0.9);
+  box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.ios-glass-pill {
+  background: rgba(0, 122, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.ios-blue-btn {
+  background-color: #007AFF;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+.ios-blue-btn:hover {
+  background-color: #0062cc;
+}
+
+/* iOS Native-like Smooth Tab Content Transition (Fade-in + Subtle Slide-up) */
+@keyframes iosPageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ios-tab-transition {
+  animation: iosPageEnter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+/* iOS Spring Scale Bounce for Active Bottom Tab Icon */
+@keyframes iosIconSpring {
+  0% {
+    transform: scale(0.9);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.ios-icon-active {
+  animation: iosIconSpring 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(209, 213, 219, 0.8);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 1);
+}
+
+:root {
+  --primary-accent: #06b6d4;
+  --primary-accent-hover: #0891b2;
+  --primary-accent-light: #ecfeff;
+  --primary-accent-border: #a5f3fc;
+  --primary-accent-text: #0891b2;
+  --primary-accent-ring: rgba(6, 182, 212, 0.4);
+}
+
+/* Global Dynamic Primary Theme Accent overrides for cyan primary elements */
+[data-theme-accent="emerald"] {
+  --primary-accent: #059669;
+  --primary-accent-hover: #047857;
+  --primary-accent-light: #ecfdf5;
+  --primary-accent-border: #a7f3d0;
+  --primary-accent-text: #047857;
+}
+[data-theme-accent="emerald"] .bg-cyan-500,
+[data-theme-accent="emerald"] .bg-cyan-600 { background-color: #059669 !important; }
+[data-theme-accent="emerald"] .hover\:bg-cyan-600:hover { background-color: #047857 !important; }
+[data-theme-accent="emerald"] .bg-cyan-50 { background-color: #ecfdf5 !important; }
+[data-theme-accent="emerald"] .border-cyan-200 { border-color: #a7f3d0 !important; }
+[data-theme-accent="emerald"] .border-cyan-100 { border-color: #d1fae5 !important; }
+[data-theme-accent="emerald"] .text-cyan-600,
+[data-theme-accent="emerald"] .text-cyan-700,
+[data-theme-accent="emerald"] .text-cyan-800 { color: #047857 !important; }
+[data-theme-accent="emerald"] .focus\:border-cyan-500:focus { border-color: #059669 !important; }
+
+[data-theme-accent="indigo"] {
+  --primary-accent: #4f46e5;
+  --primary-accent-hover: #4338ca;
+  --primary-accent-light: #eef2ff;
+  --primary-accent-border: #c7d2fe;
+  --primary-accent-text: #4338ca;
+}
+[data-theme-accent="indigo"] .bg-cyan-500,
+[data-theme-accent="indigo"] .bg-cyan-600 { background-color: #4f46e5 !important; }
+[data-theme-accent="indigo"] .hover\:bg-cyan-600:hover { background-color: #4338ca !important; }
+[data-theme-accent="indigo"] .bg-cyan-50 { background-color: #eef2ff !important; }
+[data-theme-accent="indigo"] .border-cyan-200 { border-color: #c7d2fe !important; }
+[data-theme-accent="indigo"] .border-cyan-100 { border-color: #e0e7ff !important; }
+[data-theme-accent="indigo"] .text-cyan-600,
+[data-theme-accent="indigo"] .text-cyan-700,
+[data-theme-accent="indigo"] .text-cyan-800 { color: #4338ca !important; }
+[data-theme-accent="indigo"] .focus\:border-cyan-500:focus { border-color: #4f46e5 !important; }
+
+[data-theme-accent="darkgreen"] {
+  --primary-accent: #065f46;
+  --primary-accent-hover: #044e38;
+  --primary-accent-light: #ecfdf5;
+  --primary-accent-border: #a7f3d0;
+  --primary-accent-text: #044e38;
+}
+[data-theme-accent="darkgreen"] .bg-cyan-500,
+[data-theme-accent="darkgreen"] .bg-cyan-600 { background-color: #065f46 !important; }
+[data-theme-accent="darkgreen"] .hover\:bg-cyan-600:hover { background-color: #044e38 !important; }
+[data-theme-accent="darkgreen"] .bg-cyan-50 { background-color: #ecfdf5 !important; }
+[data-theme-accent="darkgreen"] .border-cyan-200 { border-color: #a7f3d0 !important; }
+[data-theme-accent="darkgreen"] .border-cyan-100 { border-color: #d1fae5 !important; }
+[data-theme-accent="darkgreen"] .text-cyan-600,
+[data-theme-accent="darkgreen"] .text-cyan-700,
+[data-theme-accent="darkgreen"] .text-cyan-800 { color: #044e38 !important; }
+[data-theme-accent="darkgreen"] .focus\:border-cyan-500:focus { border-color: #065f46 !important; }
+
+[data-theme-accent="deepyellow"] {
+  --primary-accent: #ca8a04;
+  --primary-accent-hover: #a16207;
+  --primary-accent-light: #fefce8;
+  --primary-accent-border: #fef08a;
+  --primary-accent-text: #a16207;
+}
+[data-theme-accent="deepyellow"] .bg-cyan-500,
+[data-theme-accent="deepyellow"] .bg-cyan-600 { background-color: #ca8a04 !important; }
+[data-theme-accent="deepyellow"] .hover\:bg-cyan-600:hover { background-color: #a16207 !important; }
+[data-theme-accent="deepyellow"] .bg-cyan-50 { background-color: #fefce8 !important; }
+[data-theme-accent="deepyellow"] .border-cyan-200 { border-color: #fef08a !important; }
+[data-theme-accent="deepyellow"] .border-cyan-100 { border-color: #fef9c3 !important; }
+[data-theme-accent="deepyellow"] .text-cyan-600,
+[data-theme-accent="deepyellow"] .text-cyan-700,
+[data-theme-accent="deepyellow"] .text-cyan-800 { color: #a16207 !important; }
+[data-theme-accent="deepyellow"] .focus\:border-cyan-500:focus { border-color: #ca8a04 !important; }
+
+[data-theme-accent="purple"] {
+  --primary-accent: #6d28d9;
+  --primary-accent-hover: #5b21b6;
+  --primary-accent-light: #f3e8ff;
+  --primary-accent-border: #d8b4fe;
+  --primary-accent-text: #5b21b6;
+}
+[data-theme-accent="purple"] .bg-cyan-500,
+[data-theme-accent="purple"] .bg-cyan-600 { background-color: #6d28d9 !important; }
+[data-theme-accent="purple"] .hover\:bg-cyan-600:hover { background-color: #5b21b6 !important; }
+[data-theme-accent="purple"] .bg-cyan-50 { background-color: #f3e8ff !important; }
+[data-theme-accent="purple"] .border-cyan-200 { border-color: #d8b4fe !important; }
+[data-theme-accent="purple"] .border-cyan-100 { border-color: #e9d5ff !important; }
+[data-theme-accent="purple"] .text-cyan-600,
+[data-theme-accent="purple"] .text-cyan-700,
+[data-theme-accent="purple"] .text-cyan-800 { color: #5b21b6 !important; }
+[data-theme-accent="purple"] .focus\:border-cyan-500:focus { border-color: #6d28d9 !important; }
+
