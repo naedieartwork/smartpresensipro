@@ -52,13 +52,13 @@ class LocalNotificationService {
       renotify?: boolean;
     } = {
       body,
-      icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
+      icon: './icon-192x192.png',
+      badge: './icon-192x192.png',
       tag: `scan-presensi-${payload.cardUid || Date.now()}`,
       renotify: true,
       vibrate: [120, 60, 120],
       data: {
-        url: '/',
+        url: './',
         timestamp: Date.now(),
         ...payload,
       },
@@ -88,7 +88,7 @@ class LocalNotificationService {
       try {
         new Notification(title, {
           body,
-          icon: '/icon-192x192.png',
+          icon: './icon-192x192.png',
           tag: notificationOptions.tag,
         });
         return true;

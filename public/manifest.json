@@ -1,10 +1,10 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "SMART PRESENSI",
   "short_name": "Presensi",
   "description": "Sistem Informasi Presensi & Akademik Sekolah",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#06b6d4",
@@ -12,19 +12,19 @@
   "categories": ["education", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "./icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "./icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "./icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

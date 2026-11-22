@@ -45,7 +45,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ isFadingOut = false 
       {/* Susunan Vertikal di Tengah Layar: Logo Statis -> Margin Proporsional -> Judul -> Subjudul */}
       <div className="flex flex-col items-center justify-center px-6 text-center">
         <img
-          src="/icon-192x192.png"
+          src="./icon-192x192.png"
           alt={appTitle}
           className="w-36 h-36 sm:w-40 sm:h-40 object-contain drop-shadow-md animate-pulse"
         />

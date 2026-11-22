@@ -44,7 +44,7 @@ if (typeof window !== 'undefined') {
 
 /**
  * Sinkronisasi identitas judul dokumen tanpa memanipulasi DOM <link rel="icon"> dan <link rel="apple-touch-icon">.
- * Array icons pada konfigurasi manifest dikunci secara statis ke /icon-192x192.png dan /icon-512x512.png.
+ * Array icons pada konfigurasi manifest dikunci secara statis ke ./icon-192x192.png dan ./icon-512x512.png.
  */
 export async function syncDynamicPWAManifest(
   appTitle?: string,
@@ -64,20 +64,20 @@ export async function syncDynamicPWAManifest(
 
   const shortName = title.length > 12 ? title.slice(0, 12).trim() : title;
   const dynamicManifest = {
-    id: '/',
+    id: './',
     name: `${title} - ${subtitle}`,
     short_name: shortName || 'Presensi',
     description: subtitle,
-    start_url: '/',
-    scope: '/',
+    start_url: './',
+    scope: './',
     display: 'standalone',
     orientation: 'portrait-primary',
     theme_color: '#06b6d4',
     background_color: '#06b6d4',
     icons: [
-      { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: './icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: './icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: './icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   };
 

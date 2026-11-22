@@ -1,12 +1,11 @@
-const CACHE_NAME = 'smart-presensi-shell-v5';
+const CACHE_NAME = 'smart-presensi-shell-v6';
 
 const STATIC_SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/splash-transparent-512x512.png',
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192x192.png',
+  './icon-512x512.png',
 ];
 
 // Daftar domain API / data real-time yang TIDAK BOLEH di-cache sama sekali (100% Network-Only)
@@ -99,12 +98,12 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response && response.status === 200) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+            caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
           }
           return response;
         })
         .catch(() =>
-          caches.match('/index.html').then((cached) => cached || caches.match('/'))
+          caches.match('./index.html').then((cached) => cached || caches.match('./'))
         )
     );
     return;
@@ -150,7 +149,7 @@ self.addEventListener('message', (event) => {
 // 6. Fokuskan / Buka jendela aplikasi saat notifikasi presensi diklik oleh staf
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const targetUrl = (event.notification.data && event.notification.data.url) || './';
 
   event.waitUntil(
     self.clients
