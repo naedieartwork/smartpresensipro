@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Users,
   Plus,
@@ -3108,1591 +3109,1740 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
       )}
 
       {/* MODAL QR CODE VIEW */}
-      {selectedQrItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-200 text-center space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
-                {selectedQrItem.badge}
-              </span>
-              <button onClick={() => setSelectedQrItem(null)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {selectedQrItem &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-sm max-h-[90vh] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden my-auto">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+                <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                  {selectedQrItem.badge}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedQrItem(null)}
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-gray-900">{selectedQrItem.title}</h3>
-              <p className="text-xs text-gray-500 font-mono">{selectedQrItem.subtitle}</p>
-            </div>
+              {/* Body Modal */}
+              <div className="flex-1 overflow-y-auto p-6 text-center space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-gray-900">{selectedQrItem.title}</h3>
+                  <p className="text-xs text-gray-500 font-mono">{selectedQrItem.subtitle}</p>
+                </div>
 
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 inline-block shadow-inner">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-                  selectedQrItem.uid
-                )}&margin=10`}
-                alt="QR Code"
-                className="w-48 h-48 mx-auto rounded-xl"
-              />
-            </div>
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 inline-block shadow-inner">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                      selectedQrItem.uid
+                    )}&margin=10`}
+                    alt="QR Code"
+                    className="w-48 h-48 mx-auto rounded-xl"
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-2 pt-2">
-              <button
-                type="button"
-                onClick={handleDownloadQr}
-                disabled={isDownloadingQr}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>{isDownloadingQr ? 'Mengunduh...' : 'Download Gambar QR (PNG)'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedQrItem(null)}
-                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition"
-              >
-                Tutup
-              </button>
+              {/* Footer Modal */}
+              <div className="shrink-0 space-y-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                <button
+                  type="button"
+                  onClick={handleDownloadQr}
+                  disabled={isDownloadingQr}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{isDownloadingQr ? 'Mengunduh...' : 'Download Gambar QR (PNG)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedQrItem(null)}
+                  className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* MODAL CSV IMPORT */}
-      {isCsvModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                  <Upload className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900">
-                  Import CSV {csvType === 'students' ? 'Data Siswa' : 'Akun User Operator'}
-                </h3>
-              </div>
-              <button onClick={() => setIsCsvModalOpen(false)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <p className="text-gray-600 leading-relaxed">
-                Pilih file <code>.csv</code> atau paste teks CSV dengan format header baris pertama:{' '}
-                {csvType === 'students' ? (
-                  <code className="text-blue-600 font-mono">nama,uid_kartu,nisn,no_wa_wali,kelas</code>
-                ) : (
-                  <code className="text-blue-600 font-mono">username,nama_lengkap,nip,role,status</code>
-                )}
-              </p>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Pilih File CSV (.csv)</label>
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleFileChange}
-                  className="w-full text-xs text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Atau Paste Teks CSV di Sini:</label>
-                <textarea
-                  value={csvTextContent}
-                  onChange={(e) => setCsvTextContent(e.target.value)}
-                  rows={6}
-                  placeholder={`nama,uid_kartu,nisn,no_wa_wali,kelas\nAhmad Fauzi,E2000019,00812345,628123456789,X IPA 1`}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-900 font-mono focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
-
-              {csvImportStats && (
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-1">
-                  <div className="font-bold">Hasil Import:</div>
-                  <div>✅ Berhasil dimasukkan: {csvImportStats.successCount} data</div>
-                  <div>⚠️ Duplikat dilewati: {csvImportStats.duplicateCount} data</div>
-                  {csvImportStats.errors.length > 0 && (
-                    <div className="mt-1 pt-1 border-t border-blue-200 max-h-24 overflow-y-auto font-mono text-[11px] text-rose-700">
-                      {csvImportStats.errors.map((err, idx) => (
-                        <div key={idx}>• {err}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setIsCsvModalOpen(false)}
-                className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={handleProcessCsvImport}
-                disabled={isProcessingCsv || !csvTextContent.trim()}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
-              >
-                {isProcessingCsv ? 'Memproses...' : 'Mulai Import CSV'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ADD STUDENT */}
-      {isAddStudentOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Tambah Siswa Baru</h3>
-              <button onClick={() => setIsAddStudentOpen(false)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddStudentSubmit} className="space-y-3.5 text-xs">
-              {/* Unggah Foto Profil (Avatar) Siswa dengan Auto-Compress */}
-              <div className="flex flex-col items-center justify-center pb-1">
-                <label className="relative group cursor-pointer flex flex-col items-center">
-                  <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
-                    {formStdAvatar ? (
-                      <img
-                        src={formStdAvatar}
-                        alt="Preview Foto Profil Siswa"
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
-                        <Camera className="w-5 h-5 opacity-80" />
-                        <span className="text-[9px] font-bold uppercase tracking-tight">
-                          {formStdNama.trim() ? getStudentInitials(formStdNama) : 'Foto'}
-                        </span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
-                      <Camera className="w-5 h-5" />
-                    </div>
+      {isCsvModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden my-auto">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Upload className="w-4 h-4" />
                   </div>
+                  <h3 className="text-sm font-bold text-gray-900">
+                    Import CSV {csvType === 'students' ? 'Data Siswa' : 'Akun User Operator'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCsvModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body Modal */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-3 text-xs">
+                <p className="text-gray-600 leading-relaxed">
+                  Pilih file <code>.csv</code> atau paste teks CSV dengan format header baris pertama:{' '}
+                  {csvType === 'students' ? (
+                    <code className="text-blue-600 font-mono">nama,uid_kartu,nisn,no_wa_wali,kelas</code>
+                  ) : (
+                    <code className="text-blue-600 font-mono">username,nama_lengkap,nip,role,status</code>
+                  )}
+                </p>
+
+                <div>
+                  <label className="text-gray-700 block mb-1 font-semibold">Pilih File CSV (.csv)</label>
                   <input
                     type="file"
-                    accept="image/*"
-                    onChange={(e) => handleStudentAvatarFileChange(e, 'add')}
-                    className="hidden"
+                    accept=".csv,text/csv"
+                    onChange={handleFileChange}
+                    className="w-full text-xs text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
-                  <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
-                    {isCompressingStdAvatar
-                      ? 'Mengompresi foto...'
-                      : formStdAvatar
-                      ? 'Ganti Foto Profil Siswa'
-                      : 'Unggah Foto Profil Siswa'}
-                  </span>
-                </label>
-                {formStdAvatar && (
-                  <button
-                    type="button"
-                    onClick={() => setFormStdAvatar('')}
-                    className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
-                  >
-                    Hapus Foto
-                  </button>
+                </div>
+
+                <div>
+                  <label className="text-gray-700 block mb-1 font-semibold">Atau Paste Teks CSV di Sini:</label>
+                  <textarea
+                    value={csvTextContent}
+                    onChange={(e) => setCsvTextContent(e.target.value)}
+                    rows={6}
+                    placeholder={`nama,uid_kartu,nisn,no_wa_wali,kelas\nAhmad Fauzi,E2000019,00812345,628123456789,X IPA 1`}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-900 font-mono focus:outline-none focus:border-blue-600 shadow-sm"
+                  />
+                </div>
+
+                {csvImportStats && (
+                  <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-1">
+                    <div className="font-bold">Hasil Import:</div>
+                    <div>✅ Berhasil dimasukkan: {csvImportStats.successCount} data</div>
+                    <div>⚠️ Duplikat dilewati: {csvImportStats.duplicateCount} data</div>
+                    {csvImportStats.errors.length > 0 && (
+                      <div className="mt-1 pt-1 border-t border-blue-200 max-h-24 overflow-y-auto font-mono text-[11px] text-rose-700">
+                        {csvImportStats.errors.map((err, idx) => (
+                          <div key={idx}>• {err}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap Siswa *</label>
-                <input
-                  ref={addNamaInputRef}
-                  type="text"
-                  value={formStdNama}
-                  onChange={(e) => setFormStdNama(e.target.value)}
-                  placeholder="Contoh: Muhammad Rizky Pratama"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-gray-700 font-semibold">UID Kartu RFID *</label>
-                  <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Auto-Detect USB RFID / Kamera
-                  </span>
-                </div>
-                <div className="relative flex items-center">
-                  <input
-                    ref={addUidInputRef}
-                    type="text"
-                    autoFocus
-                    value={formStdRfid}
-                    onChange={(e) => setFormStdRfid(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => handleUidInputKeyDown(e, 'add')}
-                    placeholder="Contoh: E2000019 (atau Tap kartu fisik pada alat USB RFID)..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-22 py-2.5 text-xs font-mono text-gray-900 uppercase placeholder:normal-case placeholder:font-sans placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15 shadow-sm"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setUidScannerTarget('add')}
-                    title="Scan QR Code / Barcode Kartu Siswa dengan Kamera"
-                    className="absolute right-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 border border-blue-200 text-[11px] font-bold flex items-center gap-1.5 transition shadow-xs"
-                  >
-                    <Camera className="w-3.5 h-3.5 shrink-0" />
-                    <span>Scan</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nomor NISN Resmi</label>
-                <input
-                  type="text"
-                  value={formStdNisn}
-                  onChange={(e) => setFormStdNisn(e.target.value)}
-                  placeholder="Contoh: 0081234567"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nama Orang Tua / Wali</label>
-                <input
-                  type="text"
-                  value={formStdNamaWali}
-                  onChange={(e) => setFormStdNamaWali(e.target.value)}
-                  placeholder="Contoh: Bpk. H. Sudirman"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">No. WA Wali Murid *</label>
-                <input
-                  type="text"
-                  value={formStdWa}
-                  onChange={(e) => setFormStdWa(e.target.value)}
-                  placeholder="Contoh: 08123456789"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Kelas (Rombel)</label>
-                <select
-                  value={formStdKelas}
-                  onChange={(e) => setFormStdKelas(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+              {/* Footer Modal */}
+              <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                <button
+                  type="button"
+                  onClick={() => setIsCsvModalOpen(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
                 >
-                  <option value="">-- Pilih Kelas --</option>
-                  {rombelList.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nama_kelas}
-                    </option>
-                  ))}
-                </select>
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={handleProcessCsvImport}
+                  disabled={isProcessingCsv || !csvTextContent.trim()}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+                >
+                  {isProcessingCsv ? 'Memproses...' : 'Mulai Import CSV'}
+                </button>
               </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+      {/* MODAL ADD STUDENT */}
+      {isAddStudentOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center md:items-start justify-center p-4 md:pt-24 md:pb-8 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-lg max-h-[85vh] md:max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">Tambah Siswa Baru</h3>
                 <button
                   type="button"
                   onClick={() => setIsAddStudentOpen(false)}
-                  className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
-                >
-                  Simpan Siswa
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* EDIT STUDENT MODAL */}
-      {editingStudent && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <div>
-                <h3 className="text-sm font-bold text-gray-900">
-                  {isWaliKelas ? 'Edit Biodata Siswa & Nomor WA Wali' : 'Edit Data Siswa'}
-                </h3>
-                {isWaliKelas && (
-                  <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
-                    Akses Wali Kelas • {formattedWaliClassLabel}
-                  </p>
-                )}
-              </div>
-              <button onClick={() => setEditingStudent(null)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditStudentSubmit} className="space-y-3.5 text-xs">
-              {/* Unggah Foto Profil (Avatar) Siswa dengan Auto-Compress */}
-              <div className="flex flex-col items-center justify-center pb-1">
-                <label className="relative group cursor-pointer flex flex-col items-center">
-                  <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
-                    {editStdAvatar ? (
-                      <img
-                        src={editStdAvatar}
-                        alt="Preview Foto Profil Siswa"
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
-                        <span className="text-sm font-bold leading-none">
-                          {getStudentInitials(editStdNama || editingStudent.nama)}
-                        </span>
-                        <Camera className="w-3.5 h-3.5 opacity-75 mt-0.5" />
+              <form onSubmit={handleAddStudentSubmit} className="flex-1 min-h-0 flex flex-col text-xs">
+                {/* Body Formulir */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-3.5">
+                  {/* Unggah Foto Profil (Avatar) Siswa dengan Auto-Compress */}
+                  <div className="flex flex-col items-center justify-center pb-1">
+                    <label className="relative group cursor-pointer flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
+                        {formStdAvatar ? (
+                          <img
+                            src={formStdAvatar}
+                            alt="Preview Foto Profil Siswa"
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
+                            <Camera className="w-5 h-5 opacity-80" />
+                            <span className="text-[9px] font-bold uppercase tracking-tight">
+                              {formStdNama.trim() ? getStudentInitials(formStdNama) : 'Foto'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Camera className="w-5 h-5" />
+                        </div>
                       </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleStudentAvatarFileChange(e, 'add')}
+                        className="hidden"
+                      />
+                      <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
+                        {isCompressingStdAvatar
+                          ? 'Mengompresi foto...'
+                          : formStdAvatar
+                          ? 'Ganti Foto Profil Siswa'
+                          : 'Unggah Foto Profil Siswa'}
+                      </span>
+                    </label>
+                    {formStdAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setFormStdAvatar('')}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
+                      >
+                        Hapus Foto
+                      </button>
                     )}
-                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
-                      <Camera className="w-5 h-5" />
-                    </div>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleStudentAvatarFileChange(e, 'edit')}
-                    className="hidden"
-                  />
-                  <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
-                    {isCompressingStdAvatar
-                      ? 'Mengompresi foto...'
-                      : editStdAvatar
-                      ? 'Ganti Foto Profil Siswa'
-                      : 'Unggah Foto Profil Siswa'}
-                  </span>
-                </label>
-                {editStdAvatar && (
-                  <button
-                    type="button"
-                    onClick={() => setEditStdAvatar('')}
-                    className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
-                  >
-                    Hapus Foto
-                  </button>
-                )}
-              </div>
 
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap Siswa *</label>
-                <input
-                  ref={editNamaInputRef}
-                  type="text"
-                  value={editStdNama}
-                  onChange={(e) => setEditStdNama(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-              </div>
-
-              {!isWaliKelas && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-gray-700 font-semibold">UID Kartu RFID *</label>
-                    <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Auto-Detect USB RFID / Kamera
-                    </span>
-                  </div>
-                  <div className="relative flex items-center">
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap Siswa *</label>
                     <input
-                      ref={editUidInputRef}
+                      ref={addNamaInputRef}
                       type="text"
-                      autoFocus
-                      value={editStdRfid}
-                      onChange={(e) => setEditStdRfid(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => handleUidInputKeyDown(e, 'edit')}
-                      placeholder="Contoh: E2000019 (atau Tap kartu fisik pada alat USB RFID)..."
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-22 py-2.5 text-xs font-mono text-gray-900 uppercase placeholder:normal-case placeholder:font-sans placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15 shadow-sm"
+                      value={formStdNama}
+                      onChange={(e) => setFormStdNama(e.target.value)}
+                      placeholder="Contoh: Muhammad Rizky Pratama"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
                       required
                     />
-                    <button
-                      type="button"
-                      onClick={() => setUidScannerTarget('edit')}
-                      title="Scan QR Code / Barcode Kartu Siswa dengan Kamera"
-                      className="absolute right-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 border border-blue-200 text-[11px] font-bold flex items-center gap-1.5 transition shadow-xs"
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-gray-700 font-semibold">UID Kartu RFID *</label>
+                      <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Auto-Detect USB RFID / Kamera
+                      </span>
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        ref={addUidInputRef}
+                        type="text"
+                        autoFocus
+                        value={formStdRfid}
+                        onChange={(e) => setFormStdRfid(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => handleUidInputKeyDown(e, 'add')}
+                        placeholder="Contoh: E2000019 (atau Tap kartu fisik pada alat USB RFID)..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-22 py-2.5 text-xs font-mono text-gray-900 uppercase placeholder:normal-case placeholder:font-sans placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15 shadow-sm"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setUidScannerTarget('add')}
+                        title="Scan QR Code / Barcode Kartu Siswa dengan Kamera"
+                        className="absolute right-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 border border-blue-200 text-[11px] font-bold flex items-center gap-1.5 transition shadow-xs"
+                      >
+                        <Camera className="w-3.5 h-3.5 shrink-0" />
+                        <span>Scan</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nomor NISN Resmi</label>
+                    <input
+                      type="text"
+                      value={formStdNisn}
+                      onChange={(e) => setFormStdNisn(e.target.value)}
+                      placeholder="Contoh: 0081234567"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Orang Tua / Wali</label>
+                    <input
+                      type="text"
+                      value={formStdNamaWali}
+                      onChange={(e) => setFormStdNamaWali(e.target.value)}
+                      placeholder="Contoh: Bpk. H. Sudirman"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">No. WA Wali Murid *</label>
+                    <input
+                      type="text"
+                      value={formStdWa}
+                      onChange={(e) => setFormStdWa(e.target.value)}
+                      placeholder="Contoh: 08123456789"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Kelas (Rombel)</label>
+                    <select
+                      value={formStdKelas}
+                      onChange={(e) => setFormStdKelas(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
                     >
-                      <Camera className="w-3.5 h-3.5 shrink-0" />
-                      <span>Scan</span>
-                    </button>
+                      <option value="">-- Pilih Kelas --</option>
+                      {rombelList.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.nama_kelas}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              )}
 
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nomor NISN Resmi</label>
-                <input
-                  type="text"
-                  value={editStdNisn}
-                  onChange={(e) => setEditStdNisn(e.target.value)}
-                  placeholder="Contoh: 0081234567"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
+                {/* Footer Modal */}
+                <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddStudentOpen(false)}
+                    className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
+                  >
+                    Simpan Siswa
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nama Orang Tua / Wali</label>
-                <input
-                  type="text"
-                  value={editStdNamaWali}
-                  onChange={(e) => setEditStdNamaWali(e.target.value)}
-                  placeholder="Contoh: Bpk. H. Sudirman / Ibu Siti"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">No. WA Orang Tua / Wali Murid *</label>
-                <input
-                  type="text"
-                  value={editStdWa}
-                  onChange={(e) => setEditStdWa(e.target.value)}
-                  placeholder="Contoh: 08123456789"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-                <p className="text-[10px] text-gray-500 mt-1">
-                  Nomor WhatsApp ini langsung digunakan untuk pengiriman notifikasi presensi &amp; pengumuman ke orang tua siswa.
-                </p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-gray-700 font-semibold">Kelas / Rombel</label>
+      {/* EDIT STUDENT MODAL */}
+      {editingStudent &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center md:items-start justify-center p-4 md:pt-24 md:pb-8 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-lg max-h-[85vh] md:max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between gap-2 px-6 py-4 border-b border-gray-100 bg-white">
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                    {isWaliKelas ? 'Edit Biodata Siswa & Nomor WA Wali' : 'Edit Data Siswa'}
+                  </h3>
                   {isWaliKelas && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
-                      <Lock className="w-3 h-3" />
-                      <span>Terkunci sesuai Kelas Binaan</span>
-                    </span>
+                    <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
+                      Akses Wali Kelas • {formattedWaliClassLabel}
+                    </p>
                   )}
                 </div>
-                <select
-                  value={editStdKelas}
-                  disabled={isWaliKelas}
-                  onChange={(e) => setEditStdKelas(e.target.value)}
-                  className={`w-full border rounded-xl px-3.5 py-2.5 text-xs shadow-sm ${
-                    isWaliKelas
-                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800 font-bold cursor-not-allowed'
-                      : 'bg-gray-50 border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600'
-                  }`}
-                >
-                  <option value="">-- Pilih Kelas --</option>
-                  {rombelList.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nama_kelas}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setEditingStudent(null)}
-                  className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditStudentSubmit} className="flex-1 min-h-0 flex flex-col text-xs">
+                {/* Body Formulir */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-3.5">
+                  {/* Unggah Foto Profil (Avatar) Siswa dengan Auto-Compress */}
+                  <div className="flex flex-col items-center justify-center pb-1">
+                    <label className="relative group cursor-pointer flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
+                        {editStdAvatar ? (
+                          <img
+                            src={editStdAvatar}
+                            alt="Preview Foto Profil Siswa"
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
+                            <span className="text-sm font-bold leading-none">
+                              {getStudentInitials(editStdNama || editingStudent.nama)}
+                            </span>
+                            <Camera className="w-3.5 h-3.5 opacity-75 mt-0.5" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Camera className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleStudentAvatarFileChange(e, 'edit')}
+                        className="hidden"
+                      />
+                      <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
+                        {isCompressingStdAvatar
+                          ? 'Mengompresi foto...'
+                          : editStdAvatar
+                          ? 'Ganti Foto Profil Siswa'
+                          : 'Unggah Foto Profil Siswa'}
+                      </span>
+                    </label>
+                    {editStdAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setEditStdAvatar('')}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
+                      >
+                        Hapus Foto
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap Siswa *</label>
+                    <input
+                      ref={editNamaInputRef}
+                      type="text"
+                      value={editStdNama}
+                      onChange={(e) => setEditStdNama(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  {!isWaliKelas && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-gray-700 font-semibold">UID Kartu RFID *</label>
+                        <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Auto-Detect USB RFID / Kamera
+                        </span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <input
+                          ref={editUidInputRef}
+                          type="text"
+                          autoFocus
+                          value={editStdRfid}
+                          onChange={(e) => setEditStdRfid(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => handleUidInputKeyDown(e, 'edit')}
+                          placeholder="Contoh: E2000019 (atau Tap kartu fisik pada alat USB RFID)..."
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-22 py-2.5 text-xs font-mono text-gray-900 uppercase placeholder:normal-case placeholder:font-sans placeholder:text-gray-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15 shadow-sm"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setUidScannerTarget('edit')}
+                          title="Scan QR Code / Barcode Kartu Siswa dengan Kamera"
+                          className="absolute right-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 border border-blue-200 text-[11px] font-bold flex items-center gap-1.5 transition shadow-xs"
+                        >
+                          <Camera className="w-3.5 h-3.5 shrink-0" />
+                          <span>Scan</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nomor NISN Resmi</label>
+                    <input
+                      type="text"
+                      value={editStdNisn}
+                      onChange={(e) => setEditStdNisn(e.target.value)}
+                      placeholder="Contoh: 0081234567"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Orang Tua / Wali</label>
+                    <input
+                      type="text"
+                      value={editStdNamaWali}
+                      onChange={(e) => setEditStdNamaWali(e.target.value)}
+                      placeholder="Contoh: Bpk. H. Sudirman / Ibu Siti"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">No. WA Orang Tua / Wali Murid *</label>
+                    <input
+                      type="text"
+                      value={editStdWa}
+                      onChange={(e) => setEditStdWa(e.target.value)}
+                      placeholder="Contoh: 08123456789"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Nomor WhatsApp ini langsung digunakan untuk pengiriman notifikasi presensi &amp; pengumuman ke orang tua siswa.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-gray-700 font-semibold">Kelas / Rombel</label>
+                      {isWaliKelas && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                          <Lock className="w-3 h-3" />
+                          <span>Terkunci sesuai Kelas Binaan</span>
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={editStdKelas}
+                      disabled={isWaliKelas}
+                      onChange={(e) => setEditStdKelas(e.target.value)}
+                      className={`w-full border rounded-xl px-3.5 py-2.5 text-xs shadow-sm ${
+                        isWaliKelas
+                          ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800 font-bold cursor-not-allowed'
+                          : 'bg-gray-50 border-gray-200 text-gray-900 focus:outline-none focus:border-blue-600'
+                      }`}
+                    >
+                      <option value="">-- Pilih Kelas --</option>
+                      {rombelList.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.nama_kelas}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Footer Modal */}
+                <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                  <button
+                    type="button"
+                    onClick={() => setEditingStudent(null)}
+                    className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* MODAL KAMERA PEMINDAI (QR / BARCODE SCANNER) UNTUK UID KARTU */}
+      {uidScannerTarget &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+            <div className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden my-auto">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between gap-2 px-6 py-4 border-b border-gray-100 bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-sm shrink-0">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">
+                      Scan Kode Kartu Siswa (QR / Barcode)
+                    </h3>
+                    <p className="text-[11px] text-gray-500">
+                      Arahkan kamera ke QR Code atau Barcode pada kartu fisik siswa
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUidScannerTarget(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body Modal */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {scannerError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                    <span>{scannerError}</span>
+                  </div>
+                )}
+
+                <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 min-h-[250px] flex flex-col items-center justify-center">
+                  <video
+                    ref={scannerVideoRef}
+                    className="w-full h-full object-cover max-h-[280px]"
+                    muted
+                    playsInline
+                  />
+                  <canvas ref={scannerCanvasRef} className="hidden" />
+
+                  {!isScannerStarting && !scannerError && (
+                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4">
+                      <div className="relative w-52 h-40 border-2 border-cyan-400 rounded-2xl shadow-[inset_0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center">
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400" />
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400" />
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400" />
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400" />
+                        <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-bounce shadow-[0_0_10px_#06b6d4]" />
+                      </div>
+                    </div>
+                  )}
+
+                  {isScannerStarting && !scannerError && (
+                    <div className="absolute inset-0 bg-slate-900/85 flex flex-col items-center justify-center gap-2 text-white text-xs">
+                      <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
+                      <span className="font-medium">Mengaktifkan kamera pemindai...</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-[11px] text-blue-800 flex items-center justify-between gap-2">
+                  <span>
+                    💡 Mendukung <strong>QR Code</strong>, <strong>Barcode 1D</strong>, serta <strong>Tap USB RFID</strong> langsung.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setScannerCameraFacing((prev) =>
+                        prev === 'environment' ? 'user' : 'environment'
+                      )
+                    }
+                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-[10px] flex items-center gap-1 transition shadow-2xs"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Ganti Kamera</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer Modal */}
+              <div className="shrink-0 flex justify-end px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                <button
+                  type="button"
+                  onClick={() => setUidScannerTarget(null)}
+                  className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition"
+                >
+                  Batal &amp; Tutup Kamera
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* MODAL CUSTOM IMAGE CROPPER UNTUK FOTO PROFIL SISWA */}
+      {isCropperModalOpen &&
+        cropperImageSrc &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[10020] flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+            <div className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden my-auto">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between gap-2 px-6 py-4 border-b border-gray-100 bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] border border-[var(--primary-accent-border)] flex items-center justify-center shrink-0 shadow-2xs">
+                    <Crop className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Sesuaikan Foto Profil</h3>
+                    <p className="text-[11px] text-gray-500">
+                      Geser &amp; atur ukuran agar foto pas di dalam lingkaran
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCropperModalOpen(false);
+                    setCropperImageSrc(null);
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body Modal */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* Container react-easy-crop */}
+                <div className="relative w-full h-64 sm:h-72 rounded-2xl overflow-hidden bg-slate-950 border border-slate-700/50 shadow-inner select-none">
+                  <Cropper
+                    image={cropperImageSrc}
+                    crop={cropperCrop}
+                    zoom={cropperZoom}
+                    aspect={1}
+                    cropShape="round"
+                    showGrid={false}
+                    onCropChange={setCropperCrop}
+                    onZoomChange={setCropperZoom}
+                    onCropComplete={(_croppedArea: Area, croppedAreaPixels: Area) => {
+                      setCroppedAreaPixels(croppedAreaPixels);
+                    }}
+                  />
+                </div>
+
+                {/* Slider & Kontrol Zoom */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <ZoomIn className="w-3.5 h-3.5 text-cyan-600" />
+                      <span>Perbesar / Zoom:</span>
+                    </span>
+                    <span className="font-mono text-[11px] text-cyan-700 font-bold bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-100">
+                      {Math.round(cropperZoom * 100)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setCropperZoom((z) => Math.max(1, Number((z - 0.2).toFixed(2))))}
+                      disabled={cropperZoom <= 1}
+                      title="Perkecil"
+                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-40 transition active:scale-95"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.02}
+                      value={cropperZoom}
+                      onChange={(e) => setCropperZoom(Number(e.target.value))}
+                      className="flex-1 accent-cyan-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCropperZoom((z) => Math.min(3, Number((z + 0.2).toFixed(2))))}
+                      disabled={cropperZoom >= 3}
+                      title="Perbesar"
+                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-40 transition active:scale-95"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-center">
+                    💡 Sentuh &amp; geser foto secara langsung untuk memposisikan foto.
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer Modal */}
+              <div className="shrink-0 flex items-center gap-2 px-6 py-4 border-t border-slate-100 bg-gray-50/70">
+                <button
+                  type="button"
+                  disabled={isProcessingCrop}
+                  onClick={() => {
+                    setIsCropperModalOpen(false);
+                    setCropperImageSrc(null);
+                  }}
+                  className="flex-1 py-2.5 px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition active:scale-95 disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
-                >
-                  Simpan Perubahan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL KAMERA PEMINDAI (QR / BARCODE SCANNER) UNTUK UID KARTU */}
-      {uidScannerTarget && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-sm">
-                  <Camera className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Scan Kode Kartu Siswa (QR / Barcode)
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    Arahkan kamera ke QR Code atau Barcode pada kartu fisik siswa
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setUidScannerTarget(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {scannerError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-                <span>{scannerError}</span>
-              </div>
-            )}
-
-            <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 min-h-[250px] flex flex-col items-center justify-center">
-              <video
-                ref={scannerVideoRef}
-                className="w-full h-full object-cover max-h-[280px]"
-                muted
-                playsInline
-              />
-              <canvas ref={scannerCanvasRef} className="hidden" />
-
-              {!isScannerStarting && !scannerError && (
-                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4">
-                  <div className="relative w-52 h-40 border-2 border-cyan-400 rounded-2xl shadow-[inset_0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center">
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400" />
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400" />
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400" />
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400" />
-                    <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-bounce shadow-[0_0_10px_#06b6d4]" />
-                  </div>
-                </div>
-              )}
-
-              {isScannerStarting && !scannerError && (
-                <div className="absolute inset-0 bg-slate-900/85 flex flex-col items-center justify-center gap-2 text-white text-xs">
-                  <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
-                  <span className="font-medium">Mengaktifkan kamera pemindai...</span>
-                </div>
-              )}
-            </div>
-
-            <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-[11px] text-blue-800 flex items-center justify-between gap-2">
-              <span>
-                💡 Mendukung <strong>QR Code</strong>, <strong>Barcode 1D</strong>, serta <strong>Tap USB RFID</strong> langsung.
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setScannerCameraFacing((prev) =>
-                    prev === 'environment' ? 'user' : 'environment'
-                  )
-                }
-                className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-[10px] flex items-center gap-1 transition shadow-2xs"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Ganti Kamera</span>
-              </button>
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => setUidScannerTarget(null)}
-                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition"
-              >
-                Batal & Tutup Kamera
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CUSTOM IMAGE CROPPER UNTUK FOTO PROFIL SISWA */}
-      {isCropperModalOpen && cropperImageSrc && (
-        <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="ios-glass-card bg-white/95 rounded-3xl max-w-md w-full p-5 sm:p-6 border border-white/40 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] border border-[var(--primary-accent-border)] flex items-center justify-center shrink-0 shadow-2xs">
-                  <Crop className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">Sesuaikan Foto Profil</h3>
-                  <p className="text-[11px] text-gray-500">
-                    Geser &amp; atur ukuran agar foto pas di dalam lingkaran
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCropperModalOpen(false);
-                  setCropperImageSrc(null);
-                }}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Container react-easy-crop */}
-            <div className="relative w-full h-64 sm:h-72 rounded-2xl overflow-hidden bg-slate-950 border border-slate-700/50 shadow-inner select-none">
-              <Cropper
-                image={cropperImageSrc}
-                crop={cropperCrop}
-                zoom={cropperZoom}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
-                onCropChange={setCropperCrop}
-                onZoomChange={setCropperZoom}
-                onCropComplete={(_croppedArea: Area, croppedAreaPixels: Area) => {
-                  setCroppedAreaPixels(croppedAreaPixels);
-                }}
-              />
-            </div>
-
-            {/* Slider & Kontrol Zoom */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between text-xs text-slate-600 font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <ZoomIn className="w-3.5 h-3.5 text-cyan-600" />
-                  <span>Perbesar / Zoom:</span>
-                </span>
-                <span className="font-mono text-[11px] text-cyan-700 font-bold bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-100">
-                  {Math.round(cropperZoom * 100)}%
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <button
                   type="button"
-                  onClick={() => setCropperZoom((z) => Math.max(1, Number((z - 0.2).toFixed(2))))}
-                  disabled={cropperZoom <= 1}
-                  title="Perkecil"
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-40 transition active:scale-95"
+                  disabled={isProcessingCrop}
+                  onClick={handleApplyCrop}
+                  className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  <ZoomOut className="w-4 h-4" />
-                </button>
-                <input
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.02}
-                  value={cropperZoom}
-                  onChange={(e) => setCropperZoom(Number(e.target.value))}
-                  className="flex-1 accent-cyan-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={() => setCropperZoom((z) => Math.min(3, Number((z + 0.2).toFixed(2))))}
-                  disabled={cropperZoom >= 3}
-                  title="Perbesar"
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-40 transition active:scale-95"
-                >
-                  <ZoomIn className="w-4 h-4" />
+                  {isProcessingCrop ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Terapkan</span>
+                    </>
+                  )}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 text-center">
-                💡 Sentuh &amp; geser foto secara langsung untuk memposisikan foto.
-              </p>
             </div>
-
-            {/* Tombol Aksi */}
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isProcessingCrop}
-                onClick={() => {
-                  setIsCropperModalOpen(false);
-                  setCropperImageSrc(null);
-                }}
-                className="flex-1 py-2.5 px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition active:scale-95 disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={isProcessingCrop}
-                onClick={handleApplyCrop}
-                className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
-              >
-                {isProcessingCrop ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Memproses...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Terapkan</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* MODAL ADD ROMBEL */}
-      {isAddRombelOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Tambah Kelas (Rombel) & Jadwal Harian</h3>
-              <button onClick={() => setIsAddRombelOpen(false)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddRombelSubmit} className="space-y-4 text-xs">
-              <div className="max-h-[60vh] overflow-y-auto space-y-3.5 pr-1">
-                <div>
-                  <label className="text-gray-700 block mb-1 font-semibold">Nama Kelas (Rombel) *</label>
-                  <input
-                    type="text"
-                    value={formRmbNama}
-                    onChange={(e) => setFormRmbNama(e.target.value)}
-                    placeholder="Contoh: X IPA 1"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-gray-700 block mb-1 font-semibold">Nama Wali Kelas *</label>
-                  <input
-                    type="text"
-                    value={formRmbWali}
-                    onChange={(e) => setFormRmbWali(e.target.value)}
-                    placeholder="Contoh: Drs. H. Ahmad Fauzi, M.Pd"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-gray-700 block mb-2 font-semibold">Jadwal Jam Presensi 7 Hari (Senin - Minggu)</label>
-                  <div className="space-y-2">
-                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((day) => {
-                      const dayData = formRmbJadwal[day] || { aktif: true, masuk: '07:00', telat: '07:15', pulang: '14:00' };
-                      return (
-                        <div key={day} className={`p-3 rounded-2xl border transition ${dayData.aktif ? 'bg-white border-gray-200 shadow-sm' : 'bg-gray-100 border-gray-200 opacity-60'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={dayData.aktif}
-                                onChange={(e) => {
-                                  setFormRmbJadwal({
-                                    ...formRmbJadwal,
-                                    [day]: { ...dayData, aktif: e.target.checked }
-                                  });
-                                }}
-                                className="w-4 h-4 accent-blue-600 rounded"
-                              />
-                              <span className="font-bold text-gray-900 text-xs">{day}</span>
-                            </label>
-                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${dayData.aktif ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>
-                              {dayData.aktif ? 'AKTIF (MASUK)' : 'LIBUR'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
-                            <div>
-                              <span className="text-[10px] text-gray-500 block mb-0.5">Masuk:</span>
-                              <input
-                                type="time"
-                                disabled={!dayData.aktif}
-                                value={dayData.masuk}
-                                onChange={(e) => {
-                                  setFormRmbJadwal({
-                                    ...formRmbJadwal,
-                                    [day]: { ...dayData, masuk: e.target.value }
-                                  });
-                                }}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-500 block mb-0.5">Batas Telat:</span>
-                              <input
-                                type="time"
-                                disabled={!dayData.aktif}
-                                value={dayData.telat}
-                                onChange={(e) => {
-                                  setFormRmbJadwal({
-                                    ...formRmbJadwal,
-                                    [day]: { ...dayData, telat: e.target.value }
-                                  });
-                                }}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-500 block mb-0.5">Pulang:</span>
-                              <input
-                                type="time"
-                                disabled={!dayData.aktif}
-                                value={dayData.pulang}
-                                onChange={(e) => {
-                                  setFormRmbJadwal({
-                                    ...formRmbJadwal,
-                                    [day]: { ...dayData, pulang: e.target.value }
-                                  });
-                                }}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+      {isAddRombelOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center md:items-start justify-center p-4 md:pt-24 md:pb-8 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-2xl max-h-[85vh] md:max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                  Tambah Kelas (Rombel) &amp; Jadwal Harian
+                </h3>
                 <button
                   type="button"
                   onClick={() => setIsAddRombelOpen(false)}
-                  className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
-                >
-                  Simpan Kelas
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* EDIT ROMBEL MODAL */}
-      {editingRombel && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Edit Kelas (Rombel) & Jadwal Harian</h3>
-              <button onClick={() => setEditingRombel(null)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+              <form onSubmit={handleAddRombelSubmit} className="flex-1 min-h-0 flex flex-col text-xs">
+                {/* Body Formulir */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Kelas (Rombel) *</label>
+                    <input
+                      type="text"
+                      value={formRmbNama}
+                      onChange={(e) => setFormRmbNama(e.target.value)}
+                      placeholder="Contoh: X IPA 1"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
 
-            <form onSubmit={handleEditRombelSubmit} className="space-y-4 text-xs">
-              <div className="max-h-[60vh] overflow-y-auto space-y-3.5 pr-1">
-                <div>
-                  <label className="text-gray-700 block mb-1 font-semibold">Nama Kelas (Rombel) *</label>
-                  <input
-                    type="text"
-                    value={editRmbNama}
-                    onChange={(e) => setEditRmbNama(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Wali Kelas *</label>
+                    <input
+                      type="text"
+                      value={formRmbWali}
+                      onChange={(e) => setFormRmbWali(e.target.value)}
+                      placeholder="Contoh: Drs. H. Ahmad Fauzi, M.Pd"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="text-gray-700 block mb-1 font-semibold">Nama Wali Kelas *</label>
-                  <input
-                    type="text"
-                    value={editRmbWali}
-                    onChange={(e) => setEditRmbWali(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                    required
-                  />
-                </div>
+                  <div>
+                    <label className="text-gray-700 block mb-2 font-semibold">
+                      Jadwal Jam Presensi 7 Hari (Senin - Minggu)
+                    </label>
+                    <div className="space-y-2">
+                      {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((day) => {
+                        const dayData = formRmbJadwal[day] || {
+                          aktif: true,
+                          masuk: '07:00',
+                          telat: '07:15',
+                          pulang: '14:00',
+                        };
+                        return (
+                          <div
+                            key={day}
+                            className={`p-3 rounded-2xl border transition ${
+                              dayData.aktif
+                                ? 'bg-white border-gray-200 shadow-sm'
+                                : 'bg-gray-100 border-gray-200 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={dayData.aktif}
+                                  onChange={(e) => {
+                                    setFormRmbJadwal({
+                                      ...formRmbJadwal,
+                                      [day]: { ...dayData, aktif: e.target.checked },
+                                    });
+                                  }}
+                                  className="w-4 h-4 accent-blue-600 rounded"
+                                />
+                                <span className="font-bold text-gray-900 text-xs">{day}</span>
+                              </label>
+                              <span
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                                  dayData.aktif
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-gray-200 text-gray-600'
+                                }`}
+                              >
+                                {dayData.aktif ? 'AKTIF (MASUK)' : 'LIBUR'}
+                              </span>
+                            </div>
 
-                <div>
-                  <label className="text-gray-700 block mb-2 font-semibold">Jadwal Jam Presensi 7 Hari (Senin - Minggu)</label>
-                  <div className="space-y-2">
-                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((day) => {
-                      const dayData = editRmbJadwal[day] || { aktif: true, masuk: '07:00', telat: '07:15', pulang: '14:00' };
-                      return (
-                        <div key={day} className={`p-3 rounded-2xl border transition ${dayData.aktif ? 'bg-white border-gray-200 shadow-sm' : 'bg-gray-100 border-gray-200 opacity-60'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={dayData.aktif}
-                                onChange={(e) => {
-                                  setEditRmbJadwal({
-                                    ...editRmbJadwal,
-                                    [day]: { ...dayData, aktif: e.target.checked }
-                                  });
-                                }}
-                                className="w-4 h-4 accent-blue-600 rounded"
-                              />
-                              <span className="font-bold text-gray-900 text-xs">{day}</span>
-                            </label>
-                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${dayData.aktif ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>
-                              {dayData.aktif ? 'AKTIF (MASUK)' : 'LIBUR'}
-                            </span>
+                            <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+                              <div>
+                                <span className="text-[10px] text-gray-500 block mb-0.5">Masuk:</span>
+                                <input
+                                  type="time"
+                                  disabled={!dayData.aktif}
+                                  value={dayData.masuk}
+                                  onChange={(e) => {
+                                    setFormRmbJadwal({
+                                      ...formRmbJadwal,
+                                      [day]: { ...dayData, masuk: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-gray-500 block mb-0.5">Batas Telat:</span>
+                                <input
+                                  type="time"
+                                  disabled={!dayData.aktif}
+                                  value={dayData.telat}
+                                  onChange={(e) => {
+                                    setFormRmbJadwal({
+                                      ...formRmbJadwal,
+                                      [day]: { ...dayData, telat: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-gray-500 block mb-0.5">Pulang:</span>
+                                <input
+                                  type="time"
+                                  disabled={!dayData.aktif}
+                                  value={dayData.pulang}
+                                  onChange={(e) => {
+                                    setFormRmbJadwal({
+                                      ...formRmbJadwal,
+                                      [day]: { ...dayData, pulang: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
+                                />
+                              </div>
+                            </div>
                           </div>
-
-                          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
-                            <div>
-                              <span className="text-[10px] text-gray-500 block mb-0.5">Masuk:</span>
-                              <input
-                                type="time"
-                                disabled={!dayData.aktif}
-                                value={dayData.masuk}
-                                onChange={(e) => {
-                                  setEditRmbJadwal({
-                                    ...editRmbJadwal,
-                                    [day]: { ...dayData, masuk: e.target.value }
-                                  });
-                                }}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-500 block mb-0.5">Batas Telat:</span>
-                              <input
-                                type="time"
-                                disabled={!dayData.aktif}
-                                value={dayData.telat}
-                                onChange={(e) => {
-                                  setEditRmbJadwal({
-                                    ...editRmbJadwal,
-                                    [day]: { ...dayData, telat: e.target.value }
-                                  });
-                                }}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
-                              />
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-500 block mb-0.5">Pulang:</span>
-                              <input
-                                type="time"
-                                disabled={!dayData.aktif}
-                                value={dayData.pulang}
-                                onChange={(e) => {
-                                  setEditRmbJadwal({
-                                    ...editRmbJadwal,
-                                    [day]: { ...dayData, pulang: e.target.value }
-                                  });
-                                }}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                {/* Footer Modal */}
+                <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddRombelOpen(false)}
+                    className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
+                  >
+                    Simpan Kelas
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* EDIT ROMBEL MODAL */}
+      {editingRombel &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center md:items-start justify-center p-4 md:pt-24 md:pb-8 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-2xl max-h-[85vh] md:max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                  Edit Kelas (Rombel) &amp; Jadwal Harian
+                </h3>
                 <button
                   type="button"
                   onClick={() => setEditingRombel(null)}
-                  className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
-                >
-                  Simpan Perubahan
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* MODAL ADD USER */}
-      {isAddUserOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-gray-200 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">Tambah Akun User Operator</h3>
-              <button onClick={() => setIsAddUserOpen(false)} className="text-gray-400 hover:text-gray-900">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+              <form onSubmit={handleEditRombelSubmit} className="flex-1 min-h-0 flex flex-col text-xs">
+                {/* Body Formulir */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Kelas (Rombel) *</label>
+                    <input
+                      type="text"
+                      value={editRmbNama}
+                      onChange={(e) => setEditRmbNama(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
 
-            <form onSubmit={handleAddUserSubmit} className="space-y-3.5 text-xs">
-              {/* Unggah Foto Profil (Avatar) User */}
-              <div className="flex flex-col items-center justify-center pb-1">
-                <label className="relative group cursor-pointer flex flex-col items-center">
-                  <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
-                    {formUsrAvatar ? (
-                      <img
-                        src={formUsrAvatar}
-                        alt="Preview Foto Profil Pengguna"
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
-                        <Camera className="w-5 h-5 opacity-80" />
-                        <span className="text-[9px] font-bold uppercase tracking-tight">
-                          {formUsrNama.trim() ? getStudentInitials(formUsrNama) : 'Foto'}
-                        </span>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
-                      <Camera className="w-5 h-5" />
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Wali Kelas *</label>
+                    <input
+                      type="text"
+                      value={editRmbWali}
+                      onChange={(e) => setEditRmbWali(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-2 font-semibold">
+                      Jadwal Jam Presensi 7 Hari (Senin - Minggu)
+                    </label>
+                    <div className="space-y-2">
+                      {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((day) => {
+                        const dayData = editRmbJadwal[day] || {
+                          aktif: true,
+                          masuk: '07:00',
+                          telat: '07:15',
+                          pulang: '14:00',
+                        };
+                        return (
+                          <div
+                            key={day}
+                            className={`p-3 rounded-2xl border transition ${
+                              dayData.aktif
+                                ? 'bg-white border-gray-200 shadow-sm'
+                                : 'bg-gray-100 border-gray-200 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={dayData.aktif}
+                                  onChange={(e) => {
+                                    setEditRmbJadwal({
+                                      ...editRmbJadwal,
+                                      [day]: { ...dayData, aktif: e.target.checked },
+                                    });
+                                  }}
+                                  className="w-4 h-4 accent-blue-600 rounded"
+                                />
+                                <span className="font-bold text-gray-900 text-xs">{day}</span>
+                              </label>
+                              <span
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                                  dayData.aktif
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-gray-200 text-gray-600'
+                                }`}
+                              >
+                                {dayData.aktif ? 'AKTIF (MASUK)' : 'LIBUR'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+                              <div>
+                                <span className="text-[10px] text-gray-500 block mb-0.5">Masuk:</span>
+                                <input
+                                  type="time"
+                                  disabled={!dayData.aktif}
+                                  value={dayData.masuk}
+                                  onChange={(e) => {
+                                    setEditRmbJadwal({
+                                      ...editRmbJadwal,
+                                      [day]: { ...dayData, masuk: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-gray-500 block mb-0.5">Batas Telat:</span>
+                                <input
+                                  type="time"
+                                  disabled={!dayData.aktif}
+                                  value={dayData.telat}
+                                  onChange={(e) => {
+                                    setEditRmbJadwal({
+                                      ...editRmbJadwal,
+                                      [day]: { ...dayData, telat: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-gray-500 block mb-0.5">Pulang:</span>
+                                <input
+                                  type="time"
+                                  disabled={!dayData.aktif}
+                                  value={dayData.pulang}
+                                  onChange={(e) => {
+                                    setEditRmbJadwal({
+                                      ...editRmbJadwal,
+                                      [day]: { ...dayData, pulang: e.target.value },
+                                    });
+                                  }}
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 disabled:opacity-50"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleStudentAvatarFileChange(e, 'add_user')}
-                    className="hidden"
-                  />
-                  <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
-                    {formUsrAvatar ? 'Ganti Foto Profil' : 'Unggah Foto Profil'}
-                  </span>
-                </label>
-                {formUsrAvatar && (
+                </div>
+
+                {/* Footer Modal */}
+                <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
                   <button
                     type="button"
-                    onClick={() => setFormUsrAvatar('')}
-                    className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
+                    onClick={() => setEditingRombel(null)}
+                    className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
                   >
-                    Hapus Foto
+                    Batal
                   </button>
-                )}
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Username *</label>
-                <input
-                  type="text"
-                  value={formUsrUsername}
-                  onChange={(e) => setFormUsrUsername(e.target.value)}
-                  placeholder="Contoh: operator1"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Password / Kata Sandi *</label>
-                <div className="relative">
-                  <input
-                    type={showAddPassword ? 'text' : 'password'}
-                    value={formUsrPassword}
-                    onChange={(e) => setFormUsrPassword(e.target.value)}
-                    placeholder="Masukkan password akun"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                    required
-                  />
                   <button
-                    type="button"
-                    onClick={() => setShowAddPassword((prev) => !prev)}
-                    title={showAddPassword ? 'Sembunyikan Password' : 'Tampilkan Password'}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700 transition"
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
                   >
-                    {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    Simpan Perubahan
                   </button>
                 </div>
-              </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap & Gelar *</label>
-                <input
-                  type="text"
-                  value={formUsrNama}
-                  onChange={(e) => setFormUsrNama(e.target.value)}
-                  placeholder="Contoh: Siti Aminah, S.Pd"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">NIP / ID Pegawai</label>
-                <input
-                  type="text"
-                  value={formUsrNip}
-                  onChange={(e) => setFormUsrNip(e.target.value)}
-                  placeholder="Contoh: 19850101..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Role Pengguna</label>
-                <select
-                  value={formUsrRole}
-                  onChange={(e) => {
-                    const nextRole = e.target.value as UserRole;
-                    setFormUsrRole(nextRole);
-                    if (nextRole === 'Wali Kelas' && !formUsrAssignedClass) {
-                      setFormUsrAssignedClass(rombelList.length > 0 ? rombelList[0].nama_kelas : '1A');
-                    }
-                  }}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                >
-                  {isCurrentUserSuperAdmin && (
-                    <>
-                      <option value="Super Admin">Super Admin</option>
-                      <option value="Admin">Admin</option>
-                    </>
-                  )}
-                  <option value="Wali Kelas">Wali Kelas</option>
-                  <option value="Operator">Operator</option>
-                </select>
-                {!isCurrentUserSuperAdmin && (
-                  <p className="text-[10px] text-amber-600 mt-1">
-                    * Hanya Super Admin yang dapat menambahkan akun dengan role Super Admin atau Admin.
-                  </p>
-                )}
-              </div>
-
-              {formUsrRole === 'Wali Kelas' && (
-                <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
-                  <label className="text-emerald-900 block font-bold text-xs">
-                    Kelas / Rombel Binaan *
-                  </label>
-                  <select
-                    value={formUsrAssignedClass}
-                    onChange={(e) => setFormUsrAssignedClass(e.target.value)}
-                    required
-                    className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:outline-none focus:border-emerald-600 shadow-2xs"
-                  >
-                    <option value="">-- Pilih Kelas / Rombel Binaan --</option>
-                    {rombelList.map((r) => {
-                      const label = r.nama_kelas.toLowerCase().startsWith('kelas')
-                        ? r.nama_kelas
-                        : `Kelas ${r.nama_kelas}`;
-                      return (
-                        <option key={r.id} value={r.nama_kelas}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <p className="text-[10px] text-emerald-700 leading-relaxed">
-                    Wali Kelas hanya dapat mengakses dan mengelola data siswa pada kelas binaan yang dipilih.
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Status Akun</label>
-                <select
-                  value={formUsrStatus}
-                  onChange={(e) => setFormUsrStatus(e.target.value as AppUser['status'])}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                >
-                  <option value="Aktif">Aktif</option>
-                  <option value="Nonaktif">Nonaktif</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+      {/* MODAL ADD USER */}
+      {isAddUserOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center md:items-start justify-center p-4 md:pt-24 md:pb-8 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-lg max-h-[85vh] md:max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">Tambah Akun User Operator</h3>
                 <button
                   type="button"
                   onClick={() => setIsAddUserOpen(false)}
-                  className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
-                >
-                  Simpan User
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* EDIT USER MODAL */}
-      {editingUser && (
-        <div className="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 border border-gray-200 space-y-4 shadow-2xl my-auto">
-            <div className="flex items-start justify-between gap-2 pb-3 border-b border-gray-100 sticky top-0 bg-white z-10 -mt-1 pt-1">
-              <div className="flex flex-wrap items-center gap-2 min-w-0">
-                <h3 className="text-sm sm:text-base font-extrabold text-gray-900">
-                  Edit Akun User Operator
-                </h3>
-                {(editingUser.is_master || editingUser.username.toLowerCase() === 'naedie') && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold shrink-0">
-                    👑 MASTER OWNER
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingUser(null)}
-                className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditUserSubmit} className="space-y-3.5 text-xs">
-              {/* Unggah Foto Profil (Avatar) User */}
-              <div className="flex flex-col items-center justify-center pb-1">
-                <label className="relative group cursor-pointer flex flex-col items-center">
-                  <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
-                    {editUsrAvatar ? (
-                      <img
-                        src={editUsrAvatar}
-                        alt="Preview Foto Profil Pengguna"
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
-                        <Camera className="w-5 h-5 opacity-80" />
-                        <span className="text-[9px] font-bold uppercase tracking-tight">
-                          {getStudentInitials(editUsrNama || editingUser.nama_lengkap || editingUser.username)}
-                        </span>
+              <form onSubmit={handleAddUserSubmit} className="flex-1 min-h-0 flex flex-col text-xs">
+                {/* Body Formulir */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-3.5">
+                  {/* Unggah Foto Profil (Avatar) User */}
+                  <div className="flex flex-col items-center justify-center pb-1">
+                    <label className="relative group cursor-pointer flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
+                        {formUsrAvatar ? (
+                          <img
+                            src={formUsrAvatar}
+                            alt="Preview Foto Profil Pengguna"
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
+                            <Camera className="w-5 h-5 opacity-80" />
+                            <span className="text-[9px] font-bold uppercase tracking-tight">
+                              {formUsrNama.trim() ? getStudentInitials(formUsrNama) : 'Foto'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Camera className="w-5 h-5" />
+                        </div>
                       </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleStudentAvatarFileChange(e, 'add_user')}
+                        className="hidden"
+                      />
+                      <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
+                        {formUsrAvatar ? 'Ganti Foto Profil' : 'Unggah Foto Profil'}
+                      </span>
+                    </label>
+                    {formUsrAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setFormUsrAvatar('')}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
+                      >
+                        Hapus Foto
+                      </button>
                     )}
-                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
-                      <Camera className="w-5 h-5" />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Username *</label>
+                    <input
+                      type="text"
+                      value={formUsrUsername}
+                      onChange={(e) => setFormUsrUsername(e.target.value)}
+                      placeholder="Contoh: operator1"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Password / Kata Sandi *</label>
+                    <div className="relative">
+                      <input
+                        type={showAddPassword ? 'text' : 'password'}
+                        value={formUsrPassword}
+                        onChange={(e) => setFormUsrPassword(e.target.value)}
+                        placeholder="Masukkan password akun"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAddPassword((prev) => !prev)}
+                        title={showAddPassword ? 'Sembunyikan Password' : 'Tampilkan Password'}
+                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700 transition"
+                      >
+                        {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleStudentAvatarFileChange(e, 'edit_user')}
-                    className="hidden"
-                  />
-                  <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
-                    {editUsrAvatar ? 'Ganti Foto Profil' : 'Unggah Foto Profil'}
-                  </span>
-                </label>
-                {editUsrAvatar && (
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap &amp; Gelar *</label>
+                    <input
+                      type="text"
+                      value={formUsrNama}
+                      onChange={(e) => setFormUsrNama(e.target.value)}
+                      placeholder="Contoh: Siti Aminah, S.Pd"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">NIP / ID Pegawai</label>
+                    <input
+                      type="text"
+                      value={formUsrNip}
+                      onChange={(e) => setFormUsrNip(e.target.value)}
+                      placeholder="Contoh: 19850101..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Role Pengguna</label>
+                    <select
+                      value={formUsrRole}
+                      onChange={(e) => {
+                        const nextRole = e.target.value as UserRole;
+                        setFormUsrRole(nextRole);
+                        if (nextRole === 'Wali Kelas' && !formUsrAssignedClass) {
+                          setFormUsrAssignedClass(rombelList.length > 0 ? rombelList[0].nama_kelas : '1A');
+                        }
+                      }}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    >
+                      {isCurrentUserSuperAdmin && (
+                        <>
+                          <option value="Super Admin">Super Admin</option>
+                          <option value="Admin">Admin</option>
+                        </>
+                      )}
+                      <option value="Wali Kelas">Wali Kelas</option>
+                      <option value="Operator">Operator</option>
+                    </select>
+                    {!isCurrentUserSuperAdmin && (
+                      <p className="text-[10px] text-amber-600 mt-1">
+                        * Hanya Super Admin yang dapat menambahkan akun dengan role Super Admin atau Admin.
+                      </p>
+                    )}
+                  </div>
+
+                  {formUsrRole === 'Wali Kelas' && (
+                    <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+                      <label className="text-emerald-900 block font-bold text-xs">
+                        Kelas / Rombel Binaan *
+                      </label>
+                      <select
+                        value={formUsrAssignedClass}
+                        onChange={(e) => setFormUsrAssignedClass(e.target.value)}
+                        required
+                        className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:outline-none focus:border-emerald-600 shadow-2xs"
+                      >
+                        <option value="">-- Pilih Kelas / Rombel Binaan --</option>
+                        {rombelList.map((r) => {
+                          const label = r.nama_kelas.toLowerCase().startsWith('kelas')
+                            ? r.nama_kelas
+                            : `Kelas ${r.nama_kelas}`;
+                          return (
+                            <option key={r.id} value={r.nama_kelas}>
+                              {label}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <p className="text-[10px] text-emerald-700 leading-relaxed">
+                        Wali Kelas hanya dapat mengakses dan mengelola data siswa pada kelas binaan yang dipilih.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Status Akun</label>
+                    <select
+                      value={formUsrStatus}
+                      onChange={(e) => setFormUsrStatus(e.target.value as AppUser['status'])}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Nonaktif">Nonaktif</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Footer Modal */}
+                <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
                   <button
                     type="button"
-                    onClick={() => setEditUsrAvatar('')}
-                    className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
+                    onClick={() => setIsAddUserOpen(false)}
+                    className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
                   >
-                    Hapus Foto
+                    Batal
                   </button>
-                )}
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Username *</label>
-                <input
-                  type="text"
-                  value={editUsrUsername}
-                  disabled={Boolean(editingUser.is_master) || editingUser.username.toLowerCase() === 'naedie'}
-                  onChange={(e) => setEditUsrUsername(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm disabled:opacity-60"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Password / Kata Sandi *</label>
-                <div className="relative">
-                  <input
-                    type={showEditPassword ? 'text' : 'password'}
-                    value={editUsrPassword}
-                    onChange={(e) => setEditUsrPassword(e.target.value)}
-                    placeholder="Masukkan password akun"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                    required
-                  />
                   <button
-                    type="button"
-                    onClick={() => setShowEditPassword((prev) => !prev)}
-                    title={showEditPassword ? 'Sembunyikan Password' : 'Tampilkan Password'}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700 transition"
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
                   >
-                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    Simpan User
                   </button>
                 </div>
-              </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap & Gelar *</label>
-                <input
-                  type="text"
-                  value={editUsrNama}
-                  onChange={(e) => setEditUsrNama(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">NIP / ID Pegawai</label>
-                <input
-                  type="text"
-                  value={editUsrNip}
-                  onChange={(e) => setEditUsrNip(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Role Pengguna</label>
-                <select
-                  value={editUsrRole}
-                  disabled={Boolean(editingUser.is_master) || editingUser.username.toLowerCase() === 'naedie'}
-                  onChange={(e) => {
-                    const nextRole = e.target.value as UserRole;
-                    setEditUsrRole(nextRole);
-                    if (nextRole === 'Wali Kelas' && !editUsrAssignedClass) {
-                      setEditUsrAssignedClass(rombelList.length > 0 ? rombelList[0].nama_kelas : '1A');
-                    }
-                  }}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm disabled:opacity-60"
-                >
-                  {(isCurrentUserSuperAdmin || editingUser.role === 'Super Admin') && (
-                    <option value="Super Admin">Super Admin</option>
+      {/* EDIT USER MODAL */}
+      {editingUser &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center md:items-start justify-center p-4 md:pt-24 md:pb-8 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="relative w-full max-w-lg max-h-[85vh] md:max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-3xl border border-gray-200 shadow-2xl overflow-hidden">
+              {/* Header Modal */}
+              <div className="shrink-0 flex items-center justify-between gap-2 px-6 py-4 border-b border-gray-100 bg-white">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <h3 className="text-sm sm:text-base font-extrabold text-gray-900">
+                    Edit Akun User Operator
+                  </h3>
+                  {(editingUser.is_master || editingUser.username.toLowerCase() === 'naedie') && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold shrink-0">
+                      👑 MASTER OWNER
+                    </span>
                   )}
-                  {(isCurrentUserSuperAdmin || editingUser.role === 'Admin') && (
-                    <option value="Admin">Admin</option>
-                  )}
-                  <option value="Wali Kelas">Wali Kelas</option>
-                  <option value="Operator">Operator</option>
-                </select>
-              </div>
-
-              {editUsrRole === 'Wali Kelas' && (
-                <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
-                  <label className="text-emerald-900 block font-bold text-xs">
-                    Kelas / Rombel Binaan *
-                  </label>
-                  <select
-                    value={editUsrAssignedClass}
-                    onChange={(e) => setEditUsrAssignedClass(e.target.value)}
-                    required
-                    className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:outline-none focus:border-emerald-600 shadow-2xs"
-                  >
-                    <option value="">-- Pilih Kelas / Rombel Binaan --</option>
-                    {rombelList.map((r) => {
-                      const label = r.nama_kelas.toLowerCase().startsWith('kelas')
-                        ? r.nama_kelas
-                        : `Kelas ${r.nama_kelas}`;
-                      return (
-                        <option key={r.id} value={r.nama_kelas}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <p className="text-[10px] text-emerald-700 leading-relaxed">
-                    Wali Kelas hanya dapat mengakses dan mengelola data siswa pada kelas binaan yang dipilih.
-                  </p>
                 </div>
-              )}
-
-              <div>
-                <label className="text-gray-700 block mb-1 font-semibold">Status Akun</label>
-                <select
-                  value={editUsrStatus}
-                  disabled={Boolean(editingUser.is_master) || editingUser.username.toLowerCase() === 'naedie'}
-                  onChange={(e) => setEditUsrStatus(e.target.value as AppUser['status'])}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm disabled:opacity-60"
-                >
-                  <option value="Aktif">Aktif</option>
-                  <option value="Nonaktif">Nonaktif</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="px-4 py-2.5 text-xs text-gray-600 hover:text-gray-900"
+                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition shrink-0"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
-                >
-                  Simpan Perubahan
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleEditUserSubmit} className="flex-1 min-h-0 flex flex-col text-xs">
+                {/* Body Formulir */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-3.5">
+                  {/* Unggah Foto Profil (Avatar) User */}
+                  <div className="flex flex-col items-center justify-center pb-1">
+                    <label className="relative group cursor-pointer flex flex-col items-center">
+                      <div className="w-20 h-20 rounded-full bg-white/60 backdrop-blur-md border-2 border-dashed border-[var(--primary-accent-border)] shadow-sm flex items-center justify-center overflow-hidden transition group-hover:border-[var(--primary-accent)]">
+                        {editUsrAvatar ? (
+                          <img
+                            src={editUsrAvatar}
+                            alt="Preview Foto Profil Pengguna"
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-[var(--primary-accent-light)] text-[var(--primary-accent-text)] flex flex-col items-center justify-center gap-0.5">
+                            <Camera className="w-5 h-5 opacity-80" />
+                            <span className="text-[9px] font-bold uppercase tracking-tight">
+                              {getStudentInitials(editUsrNama || editingUser.nama_lengkap || editingUser.username)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Camera className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleStudentAvatarFileChange(e, 'edit_user')}
+                        className="hidden"
+                      />
+                      <span className="mt-1.5 text-[11px] font-semibold text-[var(--primary-accent-text)] hover:underline">
+                        {editUsrAvatar ? 'Ganti Foto Profil' : 'Unggah Foto Profil'}
+                      </span>
+                    </label>
+                    {editUsrAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setEditUsrAvatar('')}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold mt-0.5"
+                      >
+                        Hapus Foto
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Username *</label>
+                    <input
+                      type="text"
+                      value={editUsrUsername}
+                      disabled={Boolean(editingUser.is_master) || editingUser.username.toLowerCase() === 'naedie'}
+                      onChange={(e) => setEditUsrUsername(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm disabled:opacity-60"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Password / Kata Sandi *</label>
+                    <div className="relative">
+                      <input
+                        type={showEditPassword ? 'text' : 'password'}
+                        value={editUsrPassword}
+                        onChange={(e) => setEditUsrPassword(e.target.value)}
+                        placeholder="Masukkan password akun"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEditPassword((prev) => !prev)}
+                        title={showEditPassword ? 'Sembunyikan Password' : 'Tampilkan Password'}
+                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700 transition"
+                      >
+                        {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Nama Lengkap &amp; Gelar *</label>
+                    <input
+                      type="text"
+                      value={editUsrNama}
+                      onChange={(e) => setEditUsrNama(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">NIP / ID Pegawai</label>
+                    <input
+                      type="text"
+                      value={editUsrNip}
+                      onChange={(e) => setEditUsrNip(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Role Pengguna</label>
+                    <select
+                      value={editUsrRole}
+                      disabled={Boolean(editingUser.is_master) || editingUser.username.toLowerCase() === 'naedie'}
+                      onChange={(e) => {
+                        const nextRole = e.target.value as UserRole;
+                        setEditUsrRole(nextRole);
+                        if (nextRole === 'Wali Kelas' && !editUsrAssignedClass) {
+                          setEditUsrAssignedClass(rombelList.length > 0 ? rombelList[0].nama_kelas : '1A');
+                        }
+                      }}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm disabled:opacity-60"
+                    >
+                      {(isCurrentUserSuperAdmin || editingUser.role === 'Super Admin') && (
+                        <option value="Super Admin">Super Admin</option>
+                      )}
+                      {(isCurrentUserSuperAdmin || editingUser.role === 'Admin') && (
+                        <option value="Admin">Admin</option>
+                      )}
+                      <option value="Wali Kelas">Wali Kelas</option>
+                      <option value="Operator">Operator</option>
+                    </select>
+                  </div>
+
+                  {editUsrRole === 'Wali Kelas' && (
+                    <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+                      <label className="text-emerald-900 block font-bold text-xs">
+                        Kelas / Rombel Binaan *
+                      </label>
+                      <select
+                        value={editUsrAssignedClass}
+                        onChange={(e) => setEditUsrAssignedClass(e.target.value)}
+                        required
+                        className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:outline-none focus:border-emerald-600 shadow-2xs"
+                      >
+                        <option value="">-- Pilih Kelas / Rombel Binaan --</option>
+                        {rombelList.map((r) => {
+                          const label = r.nama_kelas.toLowerCase().startsWith('kelas')
+                            ? r.nama_kelas
+                            : `Kelas ${r.nama_kelas}`;
+                          return (
+                            <option key={r.id} value={r.nama_kelas}>
+                              {label}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <p className="text-[10px] text-emerald-700 leading-relaxed">
+                        Wali Kelas hanya dapat mengakses dan mengelola data siswa pada kelas binaan yang dipilih.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Status Akun</label>
+                    <select
+                      value={editUsrStatus}
+                      disabled={Boolean(editingUser.is_master) || editingUser.username.toLowerCase() === 'naedie'}
+                      onChange={(e) => setEditUsrStatus(e.target.value as AppUser['status'])}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm disabled:opacity-60"
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Nonaktif">Nonaktif</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Footer Modal */}
+                <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/70">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:text-gray-900"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* =====================================================================
           MODAL PRATINJAU CETAK MASSAL KARTU QR (STANDAR ID CARD KERTAS A4)
          ===================================================================== */}
-      {isBatchQrPrintOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-start p-3 sm:p-6 overflow-y-auto">
-          {/* Toolbar Kontrol Atas Pratinjau A4 */}
-          <div className="w-full max-w-5xl bg-slate-900 text-white border border-slate-700 rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-xl sticky top-0 z-10">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center shrink-0">
-                <QrCode className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold">
-                  Pratinjau Cetak Massal Kartu QR Presensi (Kertas A4)
-                </h4>
-                <p className="text-[11px] text-slate-400">
-                  Menampilkan seluruh <strong className="text-white">{filteredStudents.length} siswa</strong> sesuai filter aktif ({activeFilterRombelLabel})
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Pilihan Layout Kolom Kertas A4 (2 Kolom vs 3 Kolom) */}
-              <div className="inline-flex items-center gap-1 p-1 bg-slate-800 border border-slate-700 rounded-xl text-xs">
-                <button
-                  type="button"
-                  onClick={() => setQrPrintColumns(2)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                    qrPrintColumns === 2
-                      ? 'bg-cyan-500 text-slate-950'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  2 Kolom / Baris
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQrPrintColumns(3)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                    qrPrintColumns === 3
-                      ? 'bg-cyan-500 text-slate-950'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  3 Kolom / Baris
-                </button>
+      {isBatchQrPrintOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-start p-3 sm:p-6 overflow-y-auto">
+            {/* Toolbar Kontrol Atas Pratinjau A4 */}
+            <div className="w-full max-w-5xl bg-slate-900 text-white border border-slate-700 rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-xl sticky top-0 z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center shrink-0">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold">
+                    Pratinjau Cetak Massal Kartu QR Presensi (Kertas A4)
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Menampilkan seluruh <strong className="text-white">{filteredStudents.length} siswa</strong> sesuai filter aktif ({activeFilterRombelLabel})
+                  </p>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleExecuteBatchQrPrint}
-                className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition active:scale-95"
-              >
-                <Printer className="w-4 h-4" />
-                <span>🖨️ Cetak Sekarang / Simpan PDF</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsBatchQrPrintOpen(false)}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs inline-flex items-center gap-1 transition"
-              >
-                <X className="w-4 h-4" />
-                <span>Tutup</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Kertas Standar A4 Preview Container */}
-          <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 sm:p-8 space-y-5">
-            {/* Header Lembar A4 */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 text-xs text-slate-600">
-              <div>
-                <span className="font-bold text-slate-900 uppercase">
-                  {schoolSettings.appTitle || DEFAULT_APP_TITLE}
-                </span>{' '}
-                — Lembar Cetak ID Card QR Presensi ({activeFilterRombelLabel})
-              </div>
-              <div className="font-mono text-[11px] text-slate-500">
-                Total: <strong className="text-slate-900">{filteredStudents.length} Kartu</strong> · Panduan gunting garis putus-putus
-              </div>
-            </div>
-
-            {/* Grid Kartu QR (Merender Seluruh Siswa dalam filteredStudents) */}
-            <div
-              className={`grid grid-cols-1 ${
-                qrPrintColumns === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'
-              } gap-4`}
-            >
-              {filteredStudents.map((s) => {
-                const classLabel = resolveStudentClassLabel(s);
-                const uidCode = s.uid_kartu || s.rfid_uid || s.nisn || s.id;
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                  uidCode
-                )}&margin=6`;
-
-                return (
-                  <div
-                    key={s.id}
-                    className="border-2 border-dashed border-slate-300 rounded-2xl p-3.5 bg-white flex flex-col justify-between text-center break-inside-avoid space-y-3"
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Pilihan Layout Kolom Kertas A4 (2 Kolom vs 3 Kolom) */}
+                <div className="inline-flex items-center gap-1 p-1 bg-slate-800 border border-slate-700 rounded-xl text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setQrPrintColumns(2)}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                      qrPrintColumns === 2
+                        ? 'bg-cyan-500 text-slate-950'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
                   >
-                    {/* Header Nama Sekolah */}
-                    <div className="flex items-center gap-2.5 bg-slate-900 text-white px-3 py-2 rounded-xl text-left">
-                      {schoolSettings.appLogo ? (
-                        <img
-                          src={schoolSettings.appLogo}
-                          alt="Logo Sekolah"
-                          className="w-7 h-7 rounded-md object-contain bg-white p-0.5 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-md bg-blue-600 text-white flex items-center justify-center shrink-0">
-                          <GraduationCap className="w-4 h-4" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-extrabold uppercase tracking-wide truncate leading-tight">
-                          {schoolSettings.appTitle || DEFAULT_APP_TITLE}
-                        </div>
-                        <div className="text-[9px] text-slate-300 truncate leading-tight">
-                          {schoolSettings.appSubtitle || DEFAULT_APP_SUBTITLE}
+                    2 Kolom / Baris
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQrPrintColumns(3)}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                      qrPrintColumns === 3
+                        ? 'bg-cyan-500 text-slate-950'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    3 Kolom / Baris
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleExecuteBatchQrPrint}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>🖨️ Cetak Sekarang / Simpan PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsBatchQrPrintOpen(false)}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs inline-flex items-center gap-1 transition"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Tutup</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Kertas Standar A4 Preview Container */}
+            <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 sm:p-8 space-y-5">
+              {/* Header Lembar A4 */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 text-xs text-slate-600">
+                <div>
+                  <span className="font-bold text-slate-900 uppercase">
+                    {schoolSettings.appTitle || DEFAULT_APP_TITLE}
+                  </span>{' '}
+                  — Lembar Cetak ID Card QR Presensi ({activeFilterRombelLabel})
+                </div>
+                <div className="font-mono text-[11px] text-slate-500">
+                  Total: <strong className="text-slate-900">{filteredStudents.length} Kartu</strong> · Panduan gunting garis putus-putus
+                </div>
+              </div>
+
+              {/* Grid Kartu QR (Merender Seluruh Siswa dalam filteredStudents) */}
+              <div
+                className={`grid grid-cols-1 ${
+                  qrPrintColumns === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'
+                } gap-4`}
+              >
+                {filteredStudents.map((s) => {
+                  const classLabel = resolveStudentClassLabel(s);
+                  const uidCode = s.uid_kartu || s.rfid_uid || s.nisn || s.id;
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                    uidCode
+                  )}&margin=6`;
+
+                  return (
+                    <div
+                      key={s.id}
+                      className="border-2 border-dashed border-slate-300 rounded-2xl p-3.5 bg-white flex flex-col justify-between text-center break-inside-avoid space-y-3"
+                    >
+                      {/* Header Nama Sekolah */}
+                      <div className="flex items-center gap-2.5 bg-slate-900 text-white px-3 py-2 rounded-xl text-left">
+                        {schoolSettings.appLogo ? (
+                          <img
+                            src={schoolSettings.appLogo}
+                            alt="Logo Sekolah"
+                            className="w-7 h-7 rounded-md object-contain bg-white p-0.5 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-md bg-blue-600 text-white flex items-center justify-center shrink-0">
+                            <GraduationCap className="w-4 h-4" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] font-extrabold uppercase tracking-wide truncate leading-tight">
+                            {schoolSettings.appTitle || DEFAULT_APP_TITLE}
+                          </div>
+                          <div className="text-[9px] text-slate-300 truncate leading-tight">
+                            {schoolSettings.appSubtitle || DEFAULT_APP_SUBTITLE}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Body Kartu: QR Code + Nama Siswa + Badge Kelas + NISN & UID */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl inline-block">
-                        <img
-                          src={qrUrl}
-                          alt={`QR ${s.nama}`}
-                          className={`${
-                            qrPrintColumns === 2 ? 'w-32 h-32' : 'w-28 h-28'
-                          } object-contain mx-auto rounded-lg`}
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-sm font-extrabold text-slate-900 leading-snug line-clamp-2">
-                          {s.nama}
+                      {/* Body Kartu: QR Code + Nama Siswa + Badge Kelas + NISN & UID */}
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl inline-block">
+                          <img
+                            src={qrUrl}
+                            alt={`QR ${s.nama}`}
+                            className={`${
+                              qrPrintColumns === 2 ? 'w-32 h-32' : 'w-28 h-28'
+                            } object-contain mx-auto rounded-lg`}
+                          />
                         </div>
-                        <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold">
-                          {classLabel}
-                        </span>
-                      </div>
 
-                      <div className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-[11px] space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-500 font-semibold">NISN</span>
-                          <span className="font-mono font-bold text-slate-900">
-                            {s.nisn || '-'}
+                        <div className="space-y-1">
+                          <div className="text-sm font-extrabold text-slate-900 leading-snug line-clamp-2">
+                            {s.nama}
+                          </div>
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold">
+                            {classLabel}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-500 font-semibold">UID Kartu</span>
-                          <span className="font-mono font-bold text-blue-700">{uidCode}</span>
+
+                        <div className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-[11px] space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-semibold">NISN</span>
+                            <span className="font-mono font-bold text-slate-900">
+                              {s.nisn || '-'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-semibold">UID Kartu</span>
+                            <span className="font-mono font-bold text-blue-700">{uidCode}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Footer Kartu */}
-                    <div className="pt-2 border-t border-slate-100 text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                      Kartu Presensi Pintar · Scan QR / Tap RFID
+                      {/* Footer Kartu */}
+                      <div className="pt-2 border-t border-slate-100 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                        Kartu Presensi Pintar · Scan QR / Tap RFID
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
