@@ -30,6 +30,8 @@ import {
   Filter,
   Printer,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Crop,
   ZoomIn,
   ZoomOut,
@@ -102,6 +104,8 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   const [qrPrintColumns, setQrPrintColumns] = useState<2 | 3>(3);
   const [schoolSettings, setSchoolSettings] = useState(() => settingsService.getSettings());
   const [searchRombel, setSearchRombel] = useState('');
+  const [classPage, setClassPage] = useState<number>(1);
+  const CLASSES_PER_PAGE = 5;
   const [searchUser, setSearchUser] = useState('');
 
   // Toast & clipboard
@@ -1825,6 +1829,43 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
       r.nama_wali_kelas.toLowerCase().includes(searchRombel.toLowerCase())
   );
 
+  const totalFilteredClasses = filteredRombel.length;
+  const totalClassPages = Math.max(1, Math.ceil(totalFilteredClasses / CLASSES_PER_PAGE));
+  const safeClassPage = Math.min(classPage, totalClassPages);
+  const classStartIndex = (safeClassPage - 1) * CLASSES_PER_PAGE;
+  const classEndIndex = Math.min(classStartIndex + CLASSES_PER_PAGE, totalFilteredClasses);
+  const paginatedClasses = filteredRombel.slice(
+    classStartIndex,
+    classStartIndex + CLASSES_PER_PAGE
+  );
+
+  // Auto-reset ke halaman 1 saat kata kunci pencarian kelas berubah
+  useEffect(() => {
+    setClassPage(1);
+  }, [searchRombel]);
+
+  // Auto-mundur ke halaman sebelumnya jika item terakhir di halaman aktif dihapus
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(totalFilteredClasses / CLASSES_PER_PAGE));
+    if (classPage > maxPage) {
+      setClassPage(maxPage);
+    }
+  }, [totalFilteredClasses, classPage]);
+
+  const classPageNumbers: Array<number | 'ellipsis'> = (() => {
+    if (totalClassPages <= 7) {
+      return Array.from({ length: totalClassPages }, (_, i) => i + 1);
+    }
+    const pages: Array<number | 'ellipsis'> = [1];
+    const start = Math.max(2, safeClassPage - 1);
+    const end = Math.min(totalClassPages - 1, safeClassPage + 1);
+    if (start > 2) pages.push('ellipsis');
+    for (let p = start; p <= end; p++) pages.push(p);
+    if (end < totalClassPages - 1) pages.push('ellipsis');
+    pages.push(totalClassPages);
+    return pages;
+  })();
+
   const filteredUsers = userList.filter(
     (u) =>
       u.username.toLowerCase().includes(searchUser.toLowerCase()) ||
@@ -2563,7 +2604,10 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
               <input
                 type="text"
                 value={searchRombel}
-                onChange={(e) => setSearchRombel(e.target.value)}
+                onChange={(e) => {
+                  setSearchRombel(e.target.value);
+                  setClassPage(1);
+                }}
                 placeholder="Cari nama kelas atau wali kelas..."
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 shadow-sm"
               />
@@ -2580,7 +2624,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                 {searchRombel ? 'Tidak ada kelas yang cocok.' : 'Belum ada data kelas.'}
               </div>
             ) : (
-              filteredRombel.map((r) => {
+              paginatedClasses.map((r) => {
                 const studentCount = students.filter(
                   (s) => s.rombel_id === r.id || s.class_id === r.id || s.kelas === r.nama_kelas
                 ).length;
@@ -2718,11 +2762,13 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  filteredRombel.map((r, idx) => {
+                  paginatedClasses.map((r, idx) => {
                     const studentCount = students.filter((s) => s.rombel_id === r.id || s.class_id === r.id || s.kelas === r.nama_kelas).length;
                     return (
                       <tr key={r.id} className="hover:bg-gray-50 transition group">
-                        <td className="py-3.5 pl-2 font-mono text-gray-400 text-[11px]">{idx + 1}</td>
+                        <td className="py-3.5 pl-2 font-mono text-gray-400 text-[11px]">
+                          {(safeClassPage - 1) * CLASSES_PER_PAGE + idx + 1}
+                        </td>
                         <td className="py-3.5">
                           <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
                             <GraduationCap className="w-4 h-4 text-blue-600" />
@@ -2771,6 +2817,72 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* KONTROL NAVIGASI PAGINASI DAFTAR KELAS (Hanya tampil jika total > 5) */}
+          {totalFilteredClasses > CLASSES_PER_PAGE && (
+            <div className="pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-xs text-slate-500 font-medium text-center sm:text-left">
+                Menampilkan{' '}
+                <span className="font-bold text-slate-800 font-mono">
+                  {classStartIndex + 1}–{classEndIndex}
+                </span>{' '}
+                dari{' '}
+                <span className="font-bold text-slate-800 font-mono">
+                  {totalFilteredClasses}
+                </span>{' '}
+                kelas
+              </div>
+
+              <div className="flex items-center justify-center sm:justify-end flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setClassPage((prev) => Math.max(1, prev - 1))}
+                  disabled={safeClassPage <= 1}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Sebelumnya</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {classPageNumbers.map((pageItem, i) =>
+                    pageItem === 'ellipsis' ? (
+                      <span
+                        key={`ellipsis-${i}`}
+                        className="px-1.5 text-xs text-slate-400 select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={pageItem}
+                        type="button"
+                        onClick={() => setClassPage(pageItem)}
+                        aria-current={safeClassPage === pageItem ? 'page' : undefined}
+                        className={`min-w-[32px] h-8 px-2.5 rounded-xl border text-xs font-bold font-mono transition ${
+                          safeClassPage === pageItem
+                            ? 'bg-cyan-500 border-cyan-500 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-cyan-200'
+                        }`}
+                      >
+                        {pageItem}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setClassPage((prev) => Math.min(totalClassPages, prev + 1))}
+                  disabled={safeClassPage >= totalClassPages}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+                >
+                  <span>Berikutnya</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
