@@ -32,7 +32,10 @@ import {
   Crop,
   ZoomIn,
   ZoomOut,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import Cropper, { Area, Point } from 'react-easy-crop';
 import jsQR from 'jsqr';
 import { Student, Rombel, AppUser, JadwalHari, UserRole } from '../types';
@@ -106,6 +109,8 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   const toastTimerRef = useRef<number | null>(null);
   const [deletingRombelId, setDeletingRombelId] = useState<string | null>(null);
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState<boolean>(false);
+  const exportDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Expandable List Tile (Accordion Card) states for Mobile Views
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
@@ -683,6 +688,30 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
       unsubSettings();
     };
   }, []);
+
+  // Tutup dropdown Export Data saat klik di luar area atau tekan Escape
+  useEffect(() => {
+    if (!isExportMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        exportDropdownRef.current &&
+        !exportDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isExportMenuOpen]);
 
   // Kunci tab & filter kelas otomatis untuk Role Wali Kelas
   useEffect(() => {
@@ -1331,6 +1360,170 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
       : `Kelas ${matched.nama_kelas}`;
   })();
 
+  // ==================== EKSPOR DATA SISWA (EXCEL .XLSX & CSV .CSV) ====================
+  const buildStudentExportPayload = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStamp = `${yyyy}-${mm}-${dd}`;
+
+    let rawClassSegment = 'Semua';
+    if (isWaliKelas && waliAssignedClass) {
+      rawClassSegment = waliAssignedClass;
+    } else if (selectedRombelFilter !== 'ALL') {
+      const matched = rombelList.find((r) => r.id === selectedRombelFilter);
+      rawClassSegment = matched ? matched.nama_kelas : selectedRombelFilter;
+    }
+
+    const safeClassSegment =
+      rawClassSegment
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'Semua';
+
+    const fileBaseName = `Data_Siswa_${safeClassSegment}_${dateStamp}`;
+
+    const headers = [
+      'No',
+      'NIS',
+      'NISN',
+      'Nama Lengkap',
+      'Jenis Kelamin',
+      'Kelas / Rombel',
+      'UID Kartu RFID',
+      'Nama Orang Tua / Wali',
+      'No. WhatsApp Wali',
+    ];
+
+    const rows = filteredStudents.map((s, idx) => {
+      const matchedRombel = rombelList.find(
+        (item) => item.id === s.rombel_id || item.id === s.class_id || item.nama_kelas === s.kelas
+      );
+      const kelasValue = matchedRombel ? matchedRombel.nama_kelas : s.kelas || 'Umum';
+      const jenisKelamin = String(
+        (s as any).jenis_kelamin || (s as any).gender || '-'
+      ).trim();
+
+      return [
+        idx + 1,
+        String(s.nis || '').trim(),
+        String(s.nisn || '').trim(),
+        String(s.nama || '').trim(),
+        jenisKelamin,
+        String(kelasValue).trim(),
+        String(s.uid_kartu || s.rfid_uid || '').trim().toUpperCase(),
+        String(s.nama_wali || '').trim(),
+        String(s.no_wa_wali || '').trim(),
+      ];
+    });
+
+    return { headers, rows, fileBaseName };
+  };
+
+  const handleExportStudentsExcel = () => {
+    setIsExportMenuOpen(false);
+    if (filteredStudents.length === 0) {
+      showToast('Tidak ada data siswa yang tersedia untuk diekspor.', 'error');
+      return;
+    }
+
+    try {
+      const { headers, rows, fileBaseName } = buildStudentExportPayload();
+      const sheetData = [headers, ...rows];
+      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Paksa kolom angka sensitif (NIS, NISN, UID Kartu RFID, No. WhatsApp Wali) sebagai tipe String/Text
+      // agar nol di depan tidak hilang dan tidak berubah menjadi notasi ilmiah di Microsoft Excel
+      const textColumnIndices = [1, 2, 6, 8];
+      for (let r = 1; r <= rows.length; r++) {
+        for (const c of textColumnIndices) {
+          const cellAddress = XLSX.utils.encode_cell({ r, c });
+          const rawVal = String(sheetData[r][c] ?? '');
+          worksheet[cellAddress] = {
+            t: 's',
+            v: rawVal,
+            z: '@',
+          };
+        }
+      }
+
+      worksheet['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 16 }, // NIS
+        { wch: 18 }, // NISN
+        { wch: 28 }, // Nama Lengkap
+        { wch: 16 }, // Jenis Kelamin
+        { wch: 16 }, // Kelas / Rombel
+        { wch: 20 }, // UID Kartu RFID
+        { wch: 26 }, // Nama Orang Tua / Wali
+        { wch: 20 }, // No. WhatsApp Wali
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Siswa');
+      XLSX.writeFile(workbook, `${fileBaseName}.xlsx`);
+
+      sound.playSuccess();
+      showToast(
+        `Berhasil mengekspor ${filteredStudents.length} data siswa ke ${fileBaseName}.xlsx`,
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Gagal mengekspor Excel siswa:', err);
+      sound.playAlert();
+      showToast(
+        `Gagal mengekspor file Excel: ${err?.message || 'Terjadi kesalahan sistem.'}`,
+        'error'
+      );
+    }
+  };
+
+  const handleExportStudentsCsv = () => {
+    setIsExportMenuOpen(false);
+    if (filteredStudents.length === 0) {
+      showToast('Tidak ada data siswa yang tersedia untuk diekspor.', 'error');
+      return;
+    }
+
+    try {
+      const { headers, rows, fileBaseName } = buildStudentExportPayload();
+      const escapeCsvCell = (value: string | number) => {
+        const str = String(value ?? '');
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+
+      const csvLines = [
+        headers.map(escapeCsvCell).join(','),
+        ...rows.map((row) => row.map(escapeCsvCell).join(',')),
+      ];
+
+      const csvContent = '\uFEFF' + csvLines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileBaseName}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      sound.playSuccess();
+      showToast(
+        `Berhasil mengekspor ${filteredStudents.length} data siswa ke ${fileBaseName}.csv`,
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Gagal mengekspor CSV siswa:', err);
+      sound.playAlert();
+      showToast(
+        `Gagal mengekspor file CSV: ${err?.message || 'Terjadi kesalahan sistem.'}`,
+        'error'
+      );
+    }
+  };
+
   // Fungsi Cetak Massal Kartu QR (Standar ID Card Kertas A4)
   const handleExecuteBatchQrPrint = () => {
     if (filteredStudents.length === 0) return;
@@ -1685,7 +1878,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
             </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="w-full md:w-auto shrink-0">
             {isWaliKelas ? (
               <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-bold">
                 <Users className="w-4 h-4 text-cyan-600 shrink-0" />
@@ -1694,22 +1887,78 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
             ) : (
               <>
                 {activeSubTab === 'students' && (
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-2 gap-2.5 w-full sm:flex sm:w-auto sm:items-center">
                     <button
                       onClick={() => handleOpenCsvModal('students')}
-                      className="whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 font-semibold flex items-center gap-2 transition active:scale-95"
+                      className="w-full justify-center sm:w-auto whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 font-semibold flex items-center gap-2 transition active:scale-95"
                     >
                       <Upload className="w-4 h-4 text-cyan-600 shrink-0" />
                       <span className="md:hidden">Import Data</span>
                       <span className="hidden md:inline">Import CSV Siswa</span>
                     </button>
+
+                    {/* Export Data Dropdown (Excel .xlsx & CSV .csv) */}
+                    <div className="relative w-full sm:w-auto" ref={exportDropdownRef}>
+                      <button
+                        type="button"
+                        disabled={filteredStudents.length === 0}
+                        onClick={() => {
+                          if (filteredStudents.length === 0) {
+                            showToast('Tidak ada data siswa yang tersedia untuk diekspor.', 'error');
+                            return;
+                          }
+                          setIsExportMenuOpen((prev) => !prev);
+                        }}
+                        title={
+                          filteredStudents.length === 0
+                            ? 'Belum ada data siswa yang dapat diekspor'
+                            : `Ekspor ${filteredStudents.length} data siswa sesuai filter aktif`
+                        }
+                        className="w-full justify-center sm:w-auto whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 font-semibold flex items-center gap-1.5 sm:gap-2 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-100"
+                      >
+                        <Download className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Export Data</span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-150 ${
+                            isExportMenuOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+
+                      {isExportMenuOpen && filteredStudents.length > 0 && (
+                        <div className="absolute right-0 mt-2 w-52 max-w-[calc(100vw-2rem)] rounded-2xl bg-white border border-gray-200 shadow-xl py-1.5 z-40">
+                          <div className="px-3 py-1.5 border-b border-gray-100">
+                            <p className="text-[11px] font-semibold text-gray-500">
+                              Ekspor {filteredStudents.length} Siswa
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleExportStudentsExcel}
+                            className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-2.5 transition"
+                          >
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Export Excel (.xlsx)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleExportStudentsCsv}
+                            className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm font-medium text-gray-700 hover:bg-cyan-50 hover:text-cyan-700 flex items-center gap-2.5 transition"
+                          >
+                            <FileText className="w-4 h-4 text-cyan-600 shrink-0" />
+                            <span>Export CSV (.csv)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       onClick={() => {
                         setFormStdKelas(rombelList.length > 0 ? rombelList[0].id : '');
                         setFormStdAvatar('');
                         setIsAddStudentOpen(true);
                       }}
-                      className="whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold flex items-center gap-2 shadow-sm active:scale-95 transition"
+                      className="col-span-2 w-full justify-center sm:w-auto whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold flex items-center gap-2 shadow-sm active:scale-95 transition"
                     >
                       <Plus className="w-4 h-4 shrink-0" />
                       <span className="md:hidden">Siswa Baru</span>
@@ -1724,18 +1973,18 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                       setFormRmbJadwal(DEFAULT_JADWAL_HARIAN);
                       setIsAddRombelOpen(true);
                     }}
-                    className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm active:scale-95 transition"
+                    className="w-full justify-center sm:w-auto px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm active:scale-95 transition"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 shrink-0" />
                     <span>Tambah Kelas (Rombel)</span>
                   </button>
                 )}
 
                 {activeSubTab === 'users' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2.5 w-full sm:flex-row sm:w-auto sm:items-center">
                     <button
                       onClick={() => handleOpenCsvModal('users')}
-                      className="whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 font-semibold flex items-center gap-2 transition active:scale-95"
+                      className="w-full justify-center sm:w-auto whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 font-semibold flex items-center gap-2 transition active:scale-95"
                     >
                       <Upload className="w-4 h-4 text-cyan-600 shrink-0" />
                       <span className="md:hidden">Import CSV</span>
@@ -1746,7 +1995,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                         setFormUsrAssignedClass(rombelList.length > 0 ? rombelList[0].nama_kelas : '1A');
                         setIsAddUserOpen(true);
                       }}
-                      className="whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold flex items-center gap-2 shadow-sm active:scale-95 transition"
+                      className="w-full justify-center sm:w-auto whitespace-nowrap py-2.5 px-3 text-xs sm:text-sm rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold flex items-center gap-2 shadow-sm active:scale-95 transition"
                     >
                       <Plus className="w-4 h-4 shrink-0" />
                       <span className="md:hidden">User Baru</span>
