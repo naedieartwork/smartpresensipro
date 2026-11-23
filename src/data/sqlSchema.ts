@@ -138,6 +138,28 @@ CREATE TABLE IF NOT EXISTS public.wa_queue (
 CREATE INDEX IF NOT EXISTS idx_wa_queue_fifo ON public.wa_queue (status, created_at ASC);
 
 -- ================================================================
+-- 10b. TABEL: leave_requests (Pengajuan Izin & Sakit Siswa)
+-- ================================================================
+CREATE TABLE IF NOT EXISTS public.leave_requests (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    student_id TEXT NOT NULL,
+    uid_kartu VARCHAR(50) NOT NULL,
+    student_name VARCHAR(150) NOT NULL,
+    student_kelas VARCHAR(50) NOT NULL DEFAULT 'Umum',
+    jenis VARCHAR(20) NOT NULL CHECK (jenis IN ('izin', 'sakit')),
+    tanggal DATE NOT NULL,
+    alasan TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    reviewed_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_leave_requests_status_created ON public.leave_requests (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_student_id ON public.leave_requests (student_id);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_uid_kartu ON public.leave_requests (uid_kartu);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_tanggal ON public.leave_requests (tanggal DESC);
+
+-- ================================================================
 -- 11. REALTIME REPLICATION (Supabase Realtime)
 -- ================================================================
 ALTER PUBLICATION supabase_realtime ADD TABLE public.wa_queue;
@@ -147,6 +169,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.rombel;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.holidays;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.kalender_pendidikan;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jadwal_pelajaran;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.leave_requests;
 
 -- ================================================================
 -- 12. ROW LEVEL SECURITY (RLS) & PUBLIC POLICIES
@@ -160,6 +183,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.message_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leave_requests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public read-write on rombel" ON public.rombel FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read-write on holidays" ON public.holidays FOR ALL USING (true) WITH CHECK (true);
@@ -170,6 +194,7 @@ CREATE POLICY "Allow public read-write on users" ON public.users FOR ALL USING (
 CREATE POLICY "Allow public read-write on attendance_log" ON public.attendance_log FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read-write on message_templates" ON public.message_templates FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read-write on wa_queue" ON public.wa_queue FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read-write on leave_requests" ON public.leave_requests FOR ALL USING (true) WITH CHECK (true);
 
 -- ================================================================
 -- 13. SEED DATA DEFAULT: rombel (Data Kelas Awal)

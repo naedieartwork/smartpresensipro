@@ -11,6 +11,7 @@ import {
   JadwalHari,
   KalenderPendidikan,
   Holiday,
+  LeaveRequest,
 } from '../types';
 
 export interface AttendanceResult {
@@ -615,5 +616,85 @@ export class AttendanceService {
     metode: 'RFID' | 'QR' | 'Hybrid' = 'RFID'
   ): Promise<AttendanceResult> {
     return this.processHybridScan(rfidUid, defaultStatus, metode);
+  }
+
+  /**
+   * Mengecek apakah polling otomatis untuk tabel leave_requests telah dinonaktifkan pada sesi ini
+   * karena tabel belum tersedia di Supabase (404 / 42P01 / PGRST205).
+   */
+  public static isLeaveRequestsPollingDisabled(): boolean {
+    return supabaseService.isLeaveRequestsTableMissing();
+  }
+
+  /**
+   * Mengambil data leave_requests secara aman tanpa memicu error berulang
+   * apabila tabel belum tersedia di Supabase.
+   */
+  public static async getLeaveRequestsSafe(
+    studentIdOrStudent?: string | any
+  ): Promise<LeaveRequest[]> {
+    if (supabaseService.isLeaveRequestsTableMissing()) {
+      return [];
+    }
+    try {
+      return await supabaseService.getLeaveRequests(studentIdOrStudent);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Memulai polling aman untuk tabel leave_requests.
+   * Jika tabel mengembalikan 404 / 42P01 / PGRST205, interval langsung dihentikan otomatis
+   * pada sesi ini dan callback menerima [] tanpa error berulang.
+   */
+  public static startLeaveRequestsPolling(
+    onData: (requests: LeaveRequest[]) => void,
+    intervalMs: number = 5000,
+    studentIdOrStudent?: string | any
+  ): () => void {
+    let isDisposed = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const stopPolling = () => {
+      if (pollTimer !== null) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+
+    const runFetch = async () => {
+      if (isDisposed) return;
+
+      if (supabaseService.isLeaveRequestsTableMissing()) {
+        stopPolling();
+        onData([]);
+        return;
+      }
+
+      const list = await AttendanceService.getLeaveRequestsSafe(studentIdOrStudent);
+      if (isDisposed) return;
+
+      if (supabaseService.isLeaveRequestsTableMissing()) {
+        stopPolling();
+        onData([]);
+        return;
+      }
+
+      onData(list);
+    };
+
+    void runFetch();
+
+    if (!supabaseService.isLeaveRequestsTableMissing()) {
+      pollTimer = setInterval(() => {
+        void runFetch();
+      }, intervalMs);
+    }
+
+    return () => {
+      isDisposed = true;
+      stopPolling();
+    };
   }
 }

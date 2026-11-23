@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, Clock, Users, BookOpen, FileText, Award } from 'lucide-react';
 import { WorkerState, UserRole } from '../types';
 import { supabaseService } from '../services/supabaseClient';
+import { AttendanceService } from '../services/attendanceService';
 
 interface BottomTabBarProps {
   activeTab: string;
@@ -19,17 +20,16 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const [unreadLeaveCount, setUnreadLeaveCount] = useState<number>(0);
 
   const fetchLeaveRequests = useCallback(async () => {
-    try {
-      const reqs = await supabaseService.getLeaveRequests();
-      const pendingCount = reqs.filter((r) => r.status === 'pending').length;
-      setUnreadLeaveCount(pendingCount);
-    } catch {
-      // ignore fetch error
-    }
+    const reqs = await AttendanceService.getLeaveRequestsSafe();
+    const pendingCount = reqs.filter((r) => r.status === 'pending').length;
+    setUnreadLeaveCount(pendingCount);
   }, []);
 
   useEffect(() => {
-    fetchLeaveRequests();
+    const stopPolling = AttendanceService.startLeaveRequestsPolling((reqs) => {
+      const pendingCount = reqs.filter((r) => r.status === 'pending').length;
+      setUnreadLeaveCount(pendingCount);
+    }, 5000);
 
     const supabase = supabaseService.getClient();
     const channel = supabase
@@ -79,18 +79,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       }
     }
 
-    const pollInterval = setInterval(() => {
-      fetchLeaveRequests();
-    }, 5000);
-
     return () => {
+      stopPolling();
       supabase.removeChannel(channel);
       window.removeEventListener('leave_requests_updated', fetchLeaveRequests);
       window.removeEventListener('storage', fetchLeaveRequests);
       if (bc) {
         bc.close();
       }
-      clearInterval(pollInterval);
     };
   }, [fetchLeaveRequests]);
 

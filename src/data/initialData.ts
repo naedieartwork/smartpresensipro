@@ -1,14 +1,6 @@
 import { Student, MessageTemplate, AttendanceLog, WaQueueItem, StatusCategory, Rombel, AppUser } from '../types';
 
-export const INITIAL_ROMBEL: Rombel[] = [
-  { id: 'rmb-1a', nama_kelas: '1A', nama_wali_kelas: 'Hesti Supriyani, S.Pd.I', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-  { id: 'rmb-1', nama_kelas: 'X RPL 1', nama_wali_kelas: 'Drs. Bambang Sutrisno, M.Pd.', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-  { id: 'rmb-2', nama_kelas: 'X RPL 2', nama_wali_kelas: 'Siti Aminah, S.Kom.', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-  { id: 'rmb-3', nama_kelas: 'XI TKJ 1', nama_wali_kelas: 'Ahmad Fauzi, S.T.', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-  { id: 'rmb-4', nama_kelas: 'XI TKJ 2', nama_wali_kelas: 'Nurul Hidayati, S.Pd.', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-  { id: 'rmb-5', nama_kelas: 'XII SIJA 1', nama_wali_kelas: 'Hendra Kurniawan, M.Kom.', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-  { id: 'rmb-6', nama_kelas: 'XII SIJA 2', nama_wali_kelas: 'Ratna Dewi, S.Pd.', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
-];
+export const INITIAL_ROMBEL: Rombel[] = [];
 
 export const INITIAL_USERS: AppUser[] = [
   { id: 'usr-master', username: 'naedie', password: 'password123', nama_lengkap: 'Naedie (Master Owner)', role: 'Super Admin', status: 'Aktif', is_master: true, created_at: new Date(Date.now() - 86400000 * 30).toISOString() },

@@ -102,6 +102,9 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
 
   // Toast & clipboard
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const toastTimerRef = useRef<number | null>(null);
+  const [deletingRombelId, setDeletingRombelId] = useState<string | null>(null);
   const [copiedUid, setCopiedUid] = useState<string | null>(null);
 
   // Expandable List Tile (Accordion Card) states for Mobile Views
@@ -697,9 +700,19 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
     }
   }, [isWaliKelas, waliAssignedClass, rombelList]);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    setToastType(type);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toastTimerRef.current = window.setTimeout(
+      () => {
+        setToastMessage(null);
+        toastTimerRef.current = null;
+      },
+      type === 'error' ? 5000 : 3000
+    );
   };
 
   const handleCopyUid = (uid: string) => {
@@ -1003,21 +1016,42 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   };
 
   const handleDeleteRombel = async (r: Rombel) => {
+    if (deletingRombelId === r.id) return;
+
     const studentCount = students.filter((s) => s.rombel_id === r.id || s.kelas === r.nama_kelas).length;
     const confirmMsg =
       studentCount > 0
         ? `Perhatian: Ada ${studentCount} siswa yang terdaftar di kelas "${r.nama_kelas}". Yakin ingin menghapus kelas ini?`
         : `Apakah Anda yakin ingin menghapus kelas "${r.nama_kelas}"?`;
 
-    if (confirm(confirmMsg)) {
-      try {
-        await supabaseService.deleteRombel(r.id);
-        sound.playAlert();
-        showToast(`Kelas "${r.nama_kelas}" telah dihapus.`);
-        loadAllData();
-      } catch (err: any) {
-        alert('Gagal menghapus kelas: ' + (err.message || 'Unknown error'));
+    if (!confirm(confirmMsg)) return;
+
+    setDeletingRombelId(r.id);
+    try {
+      await supabaseService.deleteRombel(r.id);
+
+      // Setelah penghapusan di Supabase tuntas, perbarui state React & timpa cache localStorage
+      setRombelList((prev) => {
+        const nextList = prev.filter((item) => item.id !== r.id);
+        supabaseService.saveLocalRombelCache(nextList);
+        return nextList;
+      });
+      if (selectedRombelFilter === r.id) {
+        setSelectedRombelFilter('ALL');
       }
+
+      sound.playAlert();
+      showToast(`Kelas "${r.nama_kelas}" telah dihapus secara permanen.`, 'success');
+      await loadAllData();
+    } catch (err: any) {
+      console.error('Gagal menghapus kelas:', err);
+      sound.playAlert();
+      showToast(
+        `Gagal menghapus kelas "${r.nama_kelas}": ${err?.message || 'Terjadi kesalahan pada database.'}`,
+        'error'
+      );
+    } finally {
+      setDeletingRombelId(null);
     }
   };
 
@@ -1608,8 +1642,16 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
     <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 p-4 rounded-2xl bg-cyan-500 text-white shadow-xl backdrop-blur-xl flex items-center gap-2 text-xs font-semibold">
-          <Check className="w-4 h-4 text-white shrink-0" />
+        <div
+          className={`fixed top-20 right-6 z-50 max-w-md p-4 rounded-2xl text-white shadow-xl backdrop-blur-xl flex items-center gap-2 text-xs font-semibold ${
+            toastType === 'error' ? 'bg-rose-600' : 'bg-cyan-500'
+          }`}
+        >
+          {toastType === 'error' ? (
+            <AlertTriangle className="w-4 h-4 text-white shrink-0" />
+          ) : (
+            <Check className="w-4 h-4 text-white shrink-0" />
+          )}
           <span>{toastMessage}</span>
         </div>
       )}

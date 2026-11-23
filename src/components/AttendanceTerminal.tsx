@@ -117,19 +117,15 @@ export const AttendanceTerminal: React.FC<AttendanceTerminalProps> = ({
   });
 
   const fetchLeaveRequests = useCallback(async () => {
-    try {
-      const reqs = await supabaseService.getLeaveRequests();
-      setLeaveRequests(reqs);
-    } catch (err) {
-      console.error('Gagal memuat pengajuan izin/sakit:', err);
-    }
+    const reqs = await AttendanceService.getLeaveRequestsSafe();
+    setLeaveRequests(reqs);
   }, []);
 
   const loadData = useCallback(async () => {
     const [stds, logs, reqs] = await Promise.all([
       supabaseService.getStudents(),
       supabaseService.getAttendanceLogs(),
-      supabaseService.getLeaveRequests(),
+      AttendanceService.getLeaveRequestsSafe(),
     ]);
     setStudents(stds);
     setRecentLogs(logs);
@@ -147,7 +143,9 @@ export const AttendanceTerminal: React.FC<AttendanceTerminalProps> = ({
 
   // Real-time Listener khusus untuk Pengajuan Izin/Sakit (Supabase Realtime + LocalStorage/CustomEvent Fallback)
   useEffect(() => {
-    fetchLeaveRequests();
+    const stopPolling = AttendanceService.startLeaveRequestsPolling((reqs) => {
+      setLeaveRequests(reqs);
+    }, 5000);
 
     const supabase = supabaseService.getClient();
     const channel = supabase
@@ -198,17 +196,17 @@ export const AttendanceTerminal: React.FC<AttendanceTerminalProps> = ({
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (
+        document.visibilityState === 'visible' &&
+        !AttendanceService.isLeaveRequestsPollingDisabled()
+      ) {
         fetchLeaveRequests();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const pollInterval = setInterval(() => {
-      fetchLeaveRequests();
-    }, 5000);
-
     return () => {
+      stopPolling();
       supabase.removeChannel(channel);
       window.removeEventListener('leave_requests_updated', fetchLeaveRequests);
       window.removeEventListener('storage', fetchLeaveRequests);
@@ -216,7 +214,6 @@ export const AttendanceTerminal: React.FC<AttendanceTerminalProps> = ({
       if (bc) {
         bc.close();
       }
-      clearInterval(pollInterval);
     };
   }, [fetchLeaveRequests]);
 

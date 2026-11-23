@@ -32,6 +32,7 @@ import {
   compressAvatarImage,
 } from '../services/settingsService';
 import { supabaseService } from '../services/supabaseClient';
+import { AttendanceService } from '../services/attendanceService';
 import { syncDynamicPWAManifest } from '../hooks/usePWAInstall';
 import { getCroppedImgBlob } from '../utils/cropImage';
 
@@ -125,17 +126,16 @@ export const Header: React.FC<HeaderProps> = ({
   const [unreadLeaveCount, setUnreadLeaveCount] = useState<number>(0);
 
   const fetchLeaveRequests = useCallback(async () => {
-    try {
-      const reqs = await supabaseService.getLeaveRequests();
-      const pendingCount = reqs.filter((r) => r.status === 'pending').length;
-      setUnreadLeaveCount(pendingCount);
-    } catch {
-      // ignore fetch error
-    }
+    const reqs = await AttendanceService.getLeaveRequestsSafe();
+    const pendingCount = reqs.filter((r) => r.status === 'pending').length;
+    setUnreadLeaveCount(pendingCount);
   }, []);
 
   useEffect(() => {
-    fetchLeaveRequests();
+    const stopPolling = AttendanceService.startLeaveRequestsPolling((reqs) => {
+      const pendingCount = reqs.filter((r) => r.status === 'pending').length;
+      setUnreadLeaveCount(pendingCount);
+    }, 5000);
 
     const supabase = supabaseService.getClient();
     const channel = supabase
@@ -186,17 +186,17 @@ export const Header: React.FC<HeaderProps> = ({
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (
+        document.visibilityState === 'visible' &&
+        !AttendanceService.isLeaveRequestsPollingDisabled()
+      ) {
         fetchLeaveRequests();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const pollInterval = setInterval(() => {
-      fetchLeaveRequests();
-    }, 5000);
-
     return () => {
+      stopPolling();
       supabase.removeChannel(channel);
       window.removeEventListener('leave_requests_updated', fetchLeaveRequests);
       window.removeEventListener('storage', fetchLeaveRequests);
@@ -204,7 +204,6 @@ export const Header: React.FC<HeaderProps> = ({
       if (bc) {
         bc.close();
       }
-      clearInterval(pollInterval);
     };
   }, [fetchLeaveRequests]);
 

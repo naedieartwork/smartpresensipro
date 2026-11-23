@@ -1,11 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Student, AttendanceLog, MessageTemplate, WaQueueItem, SupabaseConfig, StatusCategory, Rombel, AppUser, UserRole, Holiday, KalenderPendidikan, JadwalPelajaran, JadwalHari, Announcement, AnnouncementCategory, StudentPoint, PointActionType, LeaveRequest, LeaveRequestStatus } from '../types';
-import { INITIAL_TEMPLATES, INITIAL_ROMBEL } from '../data/initialData';
+import { INITIAL_TEMPLATES } from '../data/initialData';
 import { DEFAULT_SCHEDULE_1A } from '../data/defaultSchedules';
 
 const TEMPLATES_STORAGE_KEY = 'school_presence_message_templates';
 const LEAVE_REQUESTS_STORAGE_KEY = 'smart_presensi_leave_requests_v1';
 const ABSENCE_NOTES_STORAGE_KEY = 'smart_presensi_absence_notes_v1';
+export const ROMBEL_CACHE_STORAGE_KEY = 'smart_presensi_rombel_cache_v1';
 export const WALI_KELAS_MAP_STORAGE_KEY = 'smart_presensi_wali_kelas_map_v1';
 export const STUDENT_WALI_MAP_STORAGE_KEY = 'smart_presensi_student_wali_map_v1';
 export const STUDENT_AVATAR_MAP_STORAGE_KEY = 'smart_presensi_student_avatar_map_v1';
@@ -24,6 +25,9 @@ export const DEFAULT_JADWAL_HARIAN: Record<string, JadwalHari> = {
 class SupabaseService {
   private client: SupabaseClient;
   private listeners: Array<() => void> = [];
+  private leaveRequestsTableMissing = false;
+  private leaveRequestsMissingLogged = false;
+  private inFlightLeaveRequestsQuery: Promise<{ data: LeaveRequest[] | null; missing: boolean }> | null = null;
 
   constructor() {
     let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://xtxornooatucohbtcivp.supabase.co';
@@ -38,7 +42,8 @@ class SupabaseService {
       window.addEventListener('storage', (e) => {
         if (
           e.key === LEAVE_REQUESTS_STORAGE_KEY ||
-          e.key === ABSENCE_NOTES_STORAGE_KEY
+          e.key === ABSENCE_NOTES_STORAGE_KEY ||
+          e.key === ROMBEL_CACHE_STORAGE_KEY
         ) {
           this.notify();
         }
@@ -76,6 +81,9 @@ class SupabaseService {
       const cleanUrl = url.replace(/^\[|\]$/g, '').trim();
       const cleanKey = anonKey.replace(/^\[|\]$/g, '').trim();
       this.client = createClient(cleanUrl, cleanKey);
+      this.leaveRequestsTableMissing = false;
+      this.leaveRequestsMissingLogged = false;
+      this.inFlightLeaveRequestsQuery = null;
       this.notify();
       return true;
     }
@@ -1270,60 +1278,54 @@ class SupabaseService {
   }
 
   // ==================== ROMBEL (DATA KELAS) ====================
+  public getLocalRombelCache(): Rombel[] {
+    try {
+      const raw = localStorage.getItem(ROMBEL_CACHE_STORAGE_KEY);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed as Rombel[];
+        }
+      }
+    } catch {
+      // ignore corrupted cache
+    }
+    return [];
+  }
+
+  public saveLocalRombelCache(list: Rombel[]): void {
+    try {
+      localStorage.setItem(ROMBEL_CACHE_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage quota error
+    }
+  }
+
   public async getRombel(): Promise<Rombel[]> {
     try {
       const { data, error } = await this.client
         .from('rombel')
         .select('*')
         .order('nama_kelas', { ascending: true });
-      if (!error && Array.isArray(data)) {
-        let list = data.map((item: any) => ({
-          ...item,
-          jadwal_harian: item.jadwal_harian || DEFAULT_JADWAL_HARIAN,
-        })) as Rombel[];
 
-        // Pastikan kelas 1A selalu tersedia di daftar rombel
-        const has1A = list.some((r) => r.nama_kelas.trim().toLowerCase() === '1a');
-        if (!has1A) {
-          try {
-            const { data: new1A } = await this.client
-              .from('rombel')
-              .insert([{
-                nama_kelas: '1A',
-                nama_wali_kelas: 'Siti Aminah, M.Pd.',
-                jadwal_harian: DEFAULT_JADWAL_HARIAN,
-              }])
-              .select()
-              .single();
-            if (new1A) {
-              list = [{ ...new1A, jadwal_harian: new1A.jadwal_harian || DEFAULT_JADWAL_HARIAN } as Rombel, ...list];
-            } else {
-              const fallback1A = INITIAL_ROMBEL.find((r) => r.nama_kelas === '1A') || {
-                id: 'rmb-1a',
-                nama_kelas: '1A',
-                nama_wali_kelas: 'Siti Aminah, M.Pd.',
-                created_at: new Date().toISOString(),
-                jadwal_harian: DEFAULT_JADWAL_HARIAN,
-              };
-              list = [fallback1A as Rombel, ...list];
-            }
-          } catch {
-            const fallback1A = INITIAL_ROMBEL.find((r) => r.nama_kelas === '1A') || {
-              id: 'rmb-1a',
-              nama_kelas: '1A',
-              nama_wali_kelas: 'Siti Aminah, M.Pd.',
-              created_at: new Date().toISOString(),
-              jadwal_harian: DEFAULT_JADWAL_HARIAN,
-            };
-            list = [fallback1A as Rombel, ...list];
-          }
-        }
-        return list;
+      if (error) {
+        console.error('Error fetching rombel from Supabase:', error);
+        return this.getLocalRombelCache();
       }
+
+      const list = (Array.isArray(data) ? data : []).map((item: any) => ({
+        ...item,
+        jadwal_harian: item.jadwal_harian || DEFAULT_JADWAL_HARIAN,
+      })) as Rombel[];
+
+      // Timpa cache lokal dengan data terbaru dari Supabase (termasuk jika kosong [])
+      // Tanpa auto-seeding atau fallback kelas dummy
+      this.saveLocalRombelCache(list);
+      return list;
     } catch (err) {
       console.error('Error fetching rombel from Supabase:', err);
+      return this.getLocalRombelCache();
     }
-    return INITIAL_ROMBEL;
   }
 
   public async addRombel(rombel: Omit<Rombel, 'id' | 'created_at'>): Promise<Rombel> {
@@ -1342,11 +1344,16 @@ class SupabaseService {
         .single();
       if (error) throw new Error(error.message);
       if (data) {
-        this.notify();
-        return {
+        const created: Rombel = {
           ...data,
           jadwal_harian: data.jadwal_harian || DEFAULT_JADWAL_HARIAN,
-        } as Rombel;
+        };
+        const currentCache = this.getLocalRombelCache().filter((item) => item.id !== created.id);
+        this.saveLocalRombelCache(
+          [...currentCache, created].sort((a, b) => a.nama_kelas.localeCompare(b.nama_kelas))
+        );
+        this.notify();
+        return created;
       }
     } catch (err: any) {
       console.error('Error adding rombel to Supabase:', err);
@@ -1371,6 +1378,22 @@ class SupabaseService {
         .update(payload)
         .eq('id', id);
       if (error) throw new Error(error.message);
+
+      const updatedCache = this.getLocalRombelCache()
+        .map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                nama_kelas: payload.nama_kelas,
+                nama_wali_kelas: payload.nama_wali_kelas,
+                jadwal_harian:
+                  updates.jadwal_harian !== undefined ? updates.jadwal_harian : item.jadwal_harian,
+              }
+            : item
+        )
+        .sort((a, b) => a.nama_kelas.localeCompare(b.nama_kelas));
+      this.saveLocalRombelCache(updatedCache);
+
       this.notify();
       return true;
     } catch (err: any) {
@@ -1380,14 +1403,92 @@ class SupabaseService {
   }
 
   public async deleteRombel(id: string): Promise<boolean> {
+    if (!id) {
+      throw new Error('ID kelas tidak valid.');
+    }
+
     try {
-      const { error } = await this.client.from('rombel').delete().eq('id', id);
-      if (error) throw new Error(error.message);
+      // 1. Hapus data terkait di tabel jadwal_pelajaran (Foreign Key rombel_id)
+      const { error: jadwalError } = await this.client
+        .from('jadwal_pelajaran')
+        .delete()
+        .eq('rombel_id', id);
+      if (
+        jadwalError &&
+        !/does not exist|Could not find the table/i.test(jadwalError.message)
+      ) {
+        console.error('Error deleting related jadwal_pelajaran:', jadwalError);
+        throw new Error(`Gagal menghapus jadwal pelajaran terkait kelas: ${jadwalError.message}`);
+      }
+
+      // 2. Lepaskan relasi Foreign Key pada tabel students (kolom rombel_id & class_id)
+      const { error: studentRombelErr } = await this.client
+        .from('students')
+        .update({ rombel_id: null })
+        .eq('rombel_id', id);
+      if (
+        studentRombelErr &&
+        !/column .* does not exist|Could not find the 'rombel_id' column/i.test(
+          studentRombelErr.message
+        )
+      ) {
+        console.error('Error detaching students.rombel_id:', studentRombelErr);
+        throw new Error(`Gagal melepaskan relasi siswa (rombel_id): ${studentRombelErr.message}`);
+      }
+
+      const { error: studentClassErr } = await this.client
+        .from('students')
+        .update({ class_id: null })
+        .eq('class_id', id);
+      if (
+        studentClassErr &&
+        !/column .* does not exist|Could not find the 'class_id' column/i.test(
+          studentClassErr.message
+        )
+      ) {
+        console.error('Error detaching students.class_id:', studentClassErr);
+        throw new Error(`Gagal melepaskan relasi siswa (class_id): ${studentClassErr.message}`);
+      }
+
+      // 3. Eksekusi DELETE langsung pada tabel rombel berdasarkan id
+      const { data: deletedRows, error } = await this.client
+        .from('rombel')
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+      if (error) {
+        console.error('Error deleting rombel from Supabase:', error);
+        throw new Error(error.message || 'Gagal menghapus kelas di database Supabase.');
+      }
+
+      // 4. Verifikasi penghapusan benar-benar tuntas (deteksi silent block oleh RLS)
+      if (!deletedRows || deletedRows.length === 0) {
+        const { data: stillExists, error: verifyError } = await this.client
+          .from('rombel')
+          .select('id')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (verifyError) {
+          throw new Error(`Gagal memverifikasi penghapusan kelas: ${verifyError.message}`);
+        }
+        if (stillExists) {
+          throw new Error(
+            'Penghapusan kelas ditolak oleh database Supabase (periksa izin / policy RLS DELETE pada tabel rombel).'
+          );
+        }
+      }
+
+      // 5. Timpa localStorage cache agar data terhapus tidak pernah muncul kembali
+      const updatedCache = this.getLocalRombelCache().filter((item) => item.id !== id);
+      this.saveLocalRombelCache(updatedCache);
+
       this.notify();
       return true;
     } catch (err: any) {
       console.error('Error deleting rombel:', err);
-      throw new Error(err.message || 'Gagal menghapus rombel.');
+      throw new Error(err?.message || 'Gagal menghapus kelas.');
     }
   }
 
@@ -3320,42 +3421,114 @@ class SupabaseService {
     );
   }
 
-  public async getLeaveRequests(studentIdOrStudent?: string | any): Promise<LeaveRequest[]> {
-    const localList = this.getLocalLeaveRequests();
-    let tableList: LeaveRequest[] = [];
-    let settingsCloudList: LeaveRequest[] = [];
+  private isLeaveRequestsTableNotFoundError(error: any, status?: number): boolean {
+    if (status === 404) return true;
+    if (!error) return false;
+    const code = String(error.code || '').toUpperCase();
+    const errStatus = Number(error.status || error.statusCode || 0);
+    const msg = String(error.message || '').toLowerCase();
+    const details = String(error.details || '').toLowerCase();
+    return (
+      errStatus === 404 ||
+      code === '42P01' ||
+      code === 'PGRST205' ||
+      msg.includes('42p01') ||
+      msg.includes('pgrst205') ||
+      msg.includes('does not exist') ||
+      msg.includes('could not find the table') ||
+      details.includes('does not exist')
+    );
+  }
 
-    try {
-      const [tableRes, settingsRes] = await Promise.allSettled([
-        this.client
+  private markLeaveRequestsTableMissing(): void {
+    this.leaveRequestsTableMissing = true;
+    if (!this.leaveRequestsMissingLogged) {
+      this.leaveRequestsMissingLogged = true;
+      console.warn(
+        '[Smart Presensi] Tabel public.leave_requests belum tersedia di Supabase (404 / 42P01 / PGRST205). Polling otomatis dihentikan untuk sesi ini.'
+      );
+    }
+  }
+
+  public isLeaveRequestsTableMissing(): boolean {
+    return this.leaveRequestsTableMissing;
+  }
+
+  private async queryLeaveRequestsTableOnce(): Promise<{ data: LeaveRequest[] | null; missing: boolean }> {
+    if (this.leaveRequestsTableMissing) {
+      return { data: null, missing: true };
+    }
+
+    if (this.inFlightLeaveRequestsQuery) {
+      return this.inFlightLeaveRequestsQuery;
+    }
+
+    this.inFlightLeaveRequestsQuery = (async () => {
+      try {
+        const res = await this.client
           .from('leave_requests')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(150),
-        this.client
-          .from('app_settings')
-          .select('time_config')
-          .eq('id', 1)
-          .maybeSingle(),
-      ]);
+          .limit(150);
 
-      if (
-        tableRes.status === 'fulfilled' &&
-        !tableRes.value.error &&
-        Array.isArray(tableRes.value.data)
-      ) {
-        tableList = tableRes.value.data
-          .map((r: any) => this.normalizeLeaveRequestRow(r))
-          .filter((r: LeaveRequest | null): r is LeaveRequest => r !== null);
+        if (res.error) {
+          if (this.isLeaveRequestsTableNotFoundError(res.error, res.status)) {
+            this.markLeaveRequestsTableMissing();
+            return { data: null, missing: true };
+          }
+          return { data: null, missing: false };
+        }
+
+        if (Array.isArray(res.data)) {
+          const normalized = res.data
+            .map((r: any) => this.normalizeLeaveRequestRow(r))
+            .filter((r: LeaveRequest | null): r is LeaveRequest => r !== null);
+          return { data: normalized, missing: false };
+        }
+
+        return { data: [], missing: false };
+      } catch (err: any) {
+        if (this.isLeaveRequestsTableNotFoundError(err, err?.status)) {
+          this.markLeaveRequestsTableMissing();
+          return { data: null, missing: true };
+        }
+        return { data: null, missing: false };
+      } finally {
+        this.inFlightLeaveRequestsQuery = null;
       }
+    })();
+
+    return this.inFlightLeaveRequestsQuery;
+  }
+
+  public async getLeaveRequests(studentIdOrStudent?: string | any): Promise<LeaveRequest[]> {
+    // Jika tabel leave_requests tidak tersedia di sesi ini, hentikan query & kembalikan []
+    if (this.leaveRequestsTableMissing) {
+      return [];
+    }
+
+    const tableQueryResult = await this.queryLeaveRequestsTableOnce();
+    if (tableQueryResult.missing) {
+      return [];
+    }
+
+    const localList = this.getLocalLeaveRequests();
+    const tableList: LeaveRequest[] = tableQueryResult.data || [];
+    let settingsCloudList: LeaveRequest[] = [];
+
+    try {
+      const settingsRes = await this.client
+        .from('app_settings')
+        .select('time_config')
+        .eq('id', 1)
+        .maybeSingle();
 
       if (
-        settingsRes.status === 'fulfilled' &&
-        !settingsRes.value.error &&
-        settingsRes.value.data?.time_config &&
-        typeof settingsRes.value.data.time_config === 'object'
+        !settingsRes.error &&
+        settingsRes.data?.time_config &&
+        typeof settingsRes.data.time_config === 'object'
       ) {
-        const tc = settingsRes.value.data.time_config as any;
+        const tc = settingsRes.data.time_config as any;
         if (Array.isArray(tc.leaveRequests)) {
           settingsCloudList = tc.leaveRequests
             .map((r: any) => this.normalizeLeaveRequestRow(r))
@@ -3363,7 +3536,7 @@ class SupabaseService {
         }
       }
     } catch {
-      // Fallback to localList if offline
+      // Fallback to tableList & localList if offline
     }
 
     const mergedList = this.mergeLeaveRequestLists(
@@ -3426,10 +3599,17 @@ class SupabaseService {
     this.setLocalLeaveRequests(updatedList, true);
 
     try {
-      await Promise.allSettled([
-        this.client.from('leave_requests').insert([newReq]),
-        this.syncLeaveRequestsToCloud(updatedList),
-      ]);
+      const tasks: Promise<any>[] = [this.syncLeaveRequestsToCloud(updatedList)];
+      if (!this.leaveRequestsTableMissing) {
+        tasks.push(
+          Promise.resolve(this.client.from('leave_requests').insert([newReq])).then((res) => {
+            if (res?.error && this.isLeaveRequestsTableNotFoundError(res.error, res.status)) {
+              this.markLeaveRequestsTableMissing();
+            }
+          })
+        );
+      }
+      await Promise.allSettled(tasks);
     } catch {
       // ignore cloud error, local state is already updated
     }
@@ -3459,13 +3639,22 @@ class SupabaseService {
     this.setLocalLeaveRequests(nextList, true);
 
     try {
-      await Promise.allSettled([
-        this.client
-          .from('leave_requests')
-          .update({ status, reviewed_at: reviewedAt })
-          .eq('id', requestId),
-        this.syncLeaveRequestsToCloud(nextList),
-      ]);
+      const tasks: Promise<any>[] = [this.syncLeaveRequestsToCloud(nextList)];
+      if (!this.leaveRequestsTableMissing) {
+        tasks.push(
+          Promise.resolve(
+            this.client
+              .from('leave_requests')
+              .update({ status, reviewed_at: reviewedAt })
+              .eq('id', requestId)
+          ).then((res) => {
+            if (res?.error && this.isLeaveRequestsTableNotFoundError(res.error, res.status)) {
+              this.markLeaveRequestsTableMissing();
+            }
+          })
+        );
+      }
+      await Promise.allSettled(tasks);
     } catch {
       // ignore cloud error
     }
