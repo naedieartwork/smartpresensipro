@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     uid_kartu VARCHAR(50) NOT NULL UNIQUE,
     nisn VARCHAR(50) UNIQUE,
     nama VARCHAR(150) NOT NULL,
+    gender VARCHAR(20) CHECK (gender IN ('Laki-laki', 'Perempuan') OR gender IS NULL OR gender = ''),
     no_wa_wali VARCHAR(25) NOT NULL,
     avatar_url TEXT,
     class_id UUID REFERENCES public.rombel(id) ON DELETE SET NULL,
@@ -77,22 +78,27 @@ CREATE TABLE IF NOT EXISTS public.students (
 );
 
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS gender VARCHAR(20);
 
 CREATE INDEX IF NOT EXISTS idx_students_uid_kartu ON public.students (uid_kartu);
 CREATE INDEX IF NOT EXISTS idx_students_nisn ON public.students (nisn);
 CREATE INDEX IF NOT EXISTS idx_students_class_id ON public.students (class_id);
 
 -- ================================================================
--- 7. TABEL: users (Data Operator Aplikasi)
+-- 7. TABEL: users & app_users (Data Operator Aplikasi)
 -- ================================================================
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) NOT NULL UNIQUE,
     nip VARCHAR(50),
+    gender VARCHAR(20) CHECK (gender IN ('Laki-laki', 'Perempuan') OR gender IS NULL OR gender = ''),
     password_hash TEXT NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'Operator Presensi' CHECK (role IN ('Administrator', 'Operator Presensi', 'Guru Piket')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS gender VARCHAR(20);
+ALTER TABLE IF EXISTS public.app_users ADD COLUMN IF NOT EXISTS gender VARCHAR(20);
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON public.users (username);
 CREATE INDEX IF NOT EXISTS idx_users_nip ON public.users (nip);

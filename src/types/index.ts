@@ -11,11 +11,14 @@ export interface SpecialScheduleSettings {
 
 export type QueueStatus = 'pending' | 'processing' | 'sent' | 'failed';
 
+export type Gender = 'Laki-laki' | 'Perempuan' | '';
+
 export interface Student {
   id: string;
   uid_kartu: string;
   rfid_uid?: string;
   nama: string;
+  gender?: Gender;
   nama_wali?: string;
   no_wa_wali: string;
   rombel_id?: string;
@@ -92,6 +95,7 @@ export interface AppUser {
   password?: string;
   password_hash?: string;
   nama_lengkap?: string;
+  gender?: Gender;
   nip?: string;
   role: UserRole;
   status?: 'Aktif' | 'Nonaktif';

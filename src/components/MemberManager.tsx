@@ -41,8 +41,8 @@ import {
 import * as XLSX from 'xlsx';
 import Cropper, { Area, Point } from 'react-easy-crop';
 import jsQR from 'jsqr';
-import { Student, Rombel, AppUser, JadwalHari, UserRole } from '../types';
-import { supabaseService, DEFAULT_JADWAL_HARIAN } from '../services/supabaseClient';
+import { Student, Gender, Rombel, AppUser, JadwalHari, UserRole } from '../types';
+import { supabaseService, DEFAULT_JADWAL_HARIAN, normalizeGender } from '../services/supabaseClient';
 import {
   settingsService,
   compressAvatarImage,
@@ -57,6 +57,24 @@ const getStudentInitials = (name?: string): string => {
   if (parts.length === 0) return 'S';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
+const renderGenderBadge = (rawGender?: unknown) => {
+  const g = normalizeGender(rawGender);
+  if (!g) return null;
+  const isMale = g === 'Laki-laki';
+  return (
+    <span
+      title={g}
+      className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold leading-none border shrink-0 ${
+        isMale
+          ? 'bg-sky-50 text-sky-700 border-sky-200/80'
+          : 'bg-pink-50 text-pink-700 border-pink-200/80'
+      }`}
+    >
+      {isMale ? 'L' : 'P'}
+    </span>
+  );
 };
 
 type MemberSubTab = 'students' | 'classes' | 'users';
@@ -126,6 +144,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   // 1. Student Modals
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [formStdNama, setFormStdNama] = useState('');
+  const [formStdGender, setFormStdGender] = useState<Gender>('');
   const [formStdNamaWali, setFormStdNamaWali] = useState('');
   const [formStdRfid, setFormStdRfid] = useState('');
   const [formStdNisn, setFormStdNisn] = useState('');
@@ -135,6 +154,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
 
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [editStdNama, setEditStdNama] = useState('');
+  const [editStdGender, setEditStdGender] = useState<Gender>('');
   const [editStdNamaWali, setEditStdNamaWali] = useState('');
   const [editStdRfid, setEditStdRfid] = useState('');
   const [editStdNisn, setEditStdNisn] = useState('');
@@ -169,6 +189,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   const [formUsrPassword, setFormUsrPassword] = useState('');
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [formUsrNama, setFormUsrNama] = useState('');
+  const [formUsrGender, setFormUsrGender] = useState<Gender>('');
   const [formUsrNip, setFormUsrNip] = useState('');
   const [formUsrRole, setFormUsrRole] = useState<UserRole>('Operator');
   const [formUsrAssignedClass, setFormUsrAssignedClass] = useState<string>('');
@@ -180,6 +201,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   const [editUsrPassword, setEditUsrPassword] = useState('');
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [editUsrNama, setEditUsrNama] = useState('');
+  const [editUsrGender, setEditUsrGender] = useState<Gender>('');
   const [editUsrNip, setEditUsrNip] = useState('');
   const [editUsrRole, setEditUsrRole] = useState<UserRole>('Operator');
   const [editUsrAssignedClass, setEditUsrAssignedClass] = useState<string>('');
@@ -488,11 +510,45 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
             rowObj[h] = rowVals[idx] || '';
           });
 
-          const nama = rowObj['nama'] || rowObj['namasiswa'] || rowObj['namalengkap'];
-          let rfid = rowObj['uid_kartu'] || rowObj['rfid'] || rowObj['rfid_uid'] || rowObj['uid'];
+          const nama =
+            rowObj['nama'] ||
+            rowObj['nama lengkap'] ||
+            rowObj['nama_lengkap'] ||
+            rowObj['namasiswa'] ||
+            rowObj['namalengkap'];
+          let rfid =
+            rowObj['uid_kartu'] ||
+            rowObj['uid kartu rfid'] ||
+            rowObj['rfid'] ||
+            rowObj['rfid_uid'] ||
+            rowObj['uid'];
           const nisn = rowObj['nisn'] || '';
-          let wa = rowObj['no_wa_wali'] || rowObj['whatsapp'] || rowObj['wa'] || '';
-          const kelasInput = rowObj['kelas'] || rowObj['rombongan_belajar'] || (rombelList[0]?.nama_kelas || 'Umum');
+          const rawGender =
+            rowObj['gender'] ||
+            rowObj['jenis_kelamin'] ||
+            rowObj['jenis kelamin'] ||
+            rowObj['jk'] ||
+            rowObj['kelamin'] ||
+            rowObj['l/p'] ||
+            '';
+          const gender = normalizeGender(rawGender);
+          const namaWali =
+            rowObj['nama_wali'] ||
+            rowObj['nama orang tua / wali'] ||
+            rowObj['nama_ortu'] ||
+            rowObj['wali'] ||
+            '';
+          let wa =
+            rowObj['no_wa_wali'] ||
+            rowObj['no. whatsapp wali'] ||
+            rowObj['whatsapp'] ||
+            rowObj['wa'] ||
+            '';
+          const kelasInput =
+            rowObj['kelas'] ||
+            rowObj['kelas / rombel'] ||
+            rowObj['rombongan_belajar'] ||
+            (rombelList[0]?.nama_kelas || 'Umum');
 
           if (!nama || !rfid) {
             errors.push(`Baris ${i + 1}: Nama atau RFID kosong, dilewati.`);
@@ -515,7 +571,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
           }
 
           if (wa.startsWith('0')) wa = '62' + wa.slice(1);
-          else if (!wa.startsWith('62')) wa = '62' + wa;
+          else if (wa && !wa.startsWith('62')) wa = '62' + wa;
 
           const matchedRombel = rombelList.find(
             (r) => r.id === kelasInput || r.nama_kelas.toLowerCase() === kelasInput.toLowerCase()
@@ -524,8 +580,10 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
           const resolvedClassName = matchedRombel ? matchedRombel.nama_kelas : kelasInput;
 
           try {
-            await supabaseService.addStudent({
+            const created = await supabaseService.addStudent({
               nama,
+              gender,
+              nama_wali: namaWali || undefined,
               uid_kartu: rfid,
               rfid_uid: rfid,
               nisn,
@@ -533,6 +591,9 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
               rombel_id: resolvedRombelId,
               kelas: resolvedClassName,
             });
+            if (namaWali && created?.id) {
+              supabaseService.saveStudentNamaWali(created.id, namaWali);
+            }
             successCount++;
           } catch (err: any) {
             errors.push(`Baris ${i + 1} (${nama}): ${err.message || 'Gagal insert'}`);
@@ -548,7 +609,16 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
 
           const username = (rowObj['username'] || '').toLowerCase();
           const password = rowObj['password'] || '123456';
-          const nama = rowObj['nama_lengkap'] || rowObj['nama'] || '';
+          const nama = rowObj['nama_lengkap'] || rowObj['nama lengkap'] || rowObj['nama'] || '';
+          const gender = normalizeGender(
+            rowObj['gender'] ||
+              rowObj['jenis_kelamin'] ||
+              rowObj['jenis kelamin'] ||
+              rowObj['jk'] ||
+              rowObj['kelamin'] ||
+              rowObj['l/p'] ||
+              ''
+          );
           const nip = rowObj['nip'] || '';
           const rawRole = (rowObj['role'] || 'Operator').trim();
           const role: UserRole =
@@ -584,6 +654,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
               username,
               password,
               nama_lengkap: nama,
+              gender,
               nip,
               role,
               status,
@@ -838,6 +909,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
     try {
       const createdStudent = await supabaseService.addStudent({
         nama: formStdNama.trim(),
+        gender: formStdGender,
         nama_wali: formStdNamaWali.trim() || undefined,
         uid_kartu: cleanRfid,
         rfid_uid: cleanRfid,
@@ -856,6 +928,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
       showToast(`Siswa "${formStdNama.trim()}" berhasil didaftarkan!`);
       setIsAddStudentOpen(false);
       setFormStdNama('');
+      setFormStdGender('');
       setFormStdNamaWali('');
       setFormStdRfid('');
       setFormStdNisn('');
@@ -871,6 +944,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
   const handleOpenEditStudent = (s: Student) => {
     setEditingStudent(s);
     setEditStdNama(s.nama);
+    setEditStdGender(normalizeGender(s.gender));
     setEditStdNamaWali(s.nama_wali || '');
     setEditStdRfid(s.uid_kartu || s.rfid_uid || '');
     setEditStdNisn(s.nisn || '');
@@ -928,6 +1002,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
     try {
       await supabaseService.updateStudent(editingStudent.id, {
         nama: editStdNama.trim(),
+        gender: editStdGender,
         nama_wali: editStdNamaWali.trim(),
         uid_kartu: cleanRfid,
         rfid_uid: cleanRfid,
@@ -1118,6 +1193,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
         username: cleanUser,
         password: formUsrPassword.trim(),
         nama_lengkap: formUsrNama.trim(),
+        gender: formUsrGender,
         nip: formUsrNip.trim(),
         role: formUsrRole,
         status: formUsrStatus,
@@ -1140,6 +1216,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
       setFormUsrPassword('');
       setShowAddPassword(false);
       setFormUsrNama('');
+      setFormUsrGender('');
       setFormUsrNip('');
       setFormUsrRole('Operator');
       setFormUsrAssignedClass('');
@@ -1162,6 +1239,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
     setEditUsrPassword(u.password || '');
     setShowEditPassword(false);
     setEditUsrNama(u.nama_lengkap || '');
+    setEditUsrGender(normalizeGender(u.gender));
     setEditUsrNip(u.nip || '');
     setEditUsrRole(u.role);
     setEditUsrAssignedClass(
@@ -1223,6 +1301,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
         username: updatedUsername,
         password: editUsrPassword.trim(),
         nama_lengkap: editUsrNama.trim(),
+        gender: editUsrGender,
         nip: editUsrNip.trim(),
         role: finalRole,
         status: finalStatus,
@@ -1244,6 +1323,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
           username: updatedUsername,
           password: editUsrPassword.trim() || currentUser.password,
           nama_lengkap: editUsrNama.trim(),
+          gender: editUsrGender,
           nip: editUsrNip.trim(),
           role: finalRole,
           status: finalStatus,
@@ -1406,9 +1486,7 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
         (item) => item.id === s.rombel_id || item.id === s.class_id || item.nama_kelas === s.kelas
       );
       const kelasValue = matchedRombel ? matchedRombel.nama_kelas : s.kelas || 'Umum';
-      const jenisKelamin = String(
-        (s as any).jenis_kelamin || (s as any).gender || '-'
-      ).trim();
+      const jenisKelamin = normalizeGender(s.gender ?? (s as any).jenis_kelamin) || '-';
 
       return [
         idx + 1,
@@ -2306,9 +2384,12 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                             </span>
                           </div>
 
-                          {/* Baris 2: Data Utama (Nama Siswa) */}
-                          <div className="font-bold text-slate-800 text-[13px] sm:text-sm leading-snug line-clamp-2">
-                            {s.nama}
+                          {/* Baris 2: Data Utama (Nama Siswa + Badge L/P) */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-800 text-[13px] sm:text-sm leading-snug line-clamp-2">
+                              {s.nama}
+                            </span>
+                            {renderGenderBadge(s.gender)}
                           </div>
                         </div>
                       </div>
@@ -2469,7 +2550,10 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="font-bold text-gray-900">{s.nama}</div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-gray-900">{s.nama}</span>
+                              {renderGenderBadge(s.gender)}
+                            </div>
                             <div className="text-[10px] text-gray-500 font-mono">
                               NISN: {s.nisn || '-'}
                               {s.nama_wali ? ` · Wali: ${s.nama_wali}` : ''}
@@ -2970,9 +3054,12 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                             </span>
                           </div>
 
-                          {/* Baris 2: Data Utama (Nama Lengkap) */}
-                          <div className="font-bold text-slate-800 text-[13px] sm:text-sm leading-snug line-clamp-2">
-                            {u.nama_lengkap}
+                          {/* Baris 2: Data Utama (Nama Lengkap + Badge L/P) */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-800 text-[13px] sm:text-sm leading-snug line-clamp-2">
+                              {u.nama_lengkap}
+                            </span>
+                            {renderGenderBadge(u.gender)}
                           </div>
                         </div>
                       </div>
@@ -3141,7 +3228,10 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                               </div>
                             )}
                             <div>
-                              <div className="font-bold text-gray-900">{u.nama_lengkap}</div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-gray-900">{u.nama_lengkap}</span>
+                                {renderGenderBadge(u.gender)}
+                              </div>
                               {u.nip && <div className="text-[10px] text-gray-500 font-mono">NIP: {u.nip}</div>}
                             </div>
                           </div>
@@ -3312,9 +3402,9 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                 <p className="text-gray-600 leading-relaxed">
                   Pilih file <code>.csv</code> atau paste teks CSV dengan format header baris pertama:{' '}
                   {csvType === 'students' ? (
-                    <code className="text-blue-600 font-mono">nama,uid_kartu,nisn,no_wa_wali,kelas</code>
+                    <code className="text-blue-600 font-mono">nama,jenis_kelamin,uid_kartu,nisn,no_wa_wali,kelas</code>
                   ) : (
-                    <code className="text-blue-600 font-mono">username,nama_lengkap,nip,role,status</code>
+                    <code className="text-blue-600 font-mono">username,nama_lengkap,jenis_kelamin,nip,role,status</code>
                   )}
                 </p>
 
@@ -3334,7 +3424,11 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                     value={csvTextContent}
                     onChange={(e) => setCsvTextContent(e.target.value)}
                     rows={6}
-                    placeholder={`nama,uid_kartu,nisn,no_wa_wali,kelas\nAhmad Fauzi,E2000019,00812345,628123456789,X IPA 1`}
+                    placeholder={
+                      csvType === 'students'
+                        ? `nama,jenis_kelamin,uid_kartu,nisn,no_wa_wali,kelas\nAhmad Fauzi,L,E2000019,00812345,628123456789,X IPA 1`
+                        : `username,nama_lengkap,jenis_kelamin,nip,role,status\noperator1,Siti Aminah,P,19850101,Operator,Aktif`
+                    }
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-900 font-mono focus:outline-none focus:border-blue-600 shadow-sm"
                   />
                 </div>
@@ -3457,6 +3551,19 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Jenis Kelamin</label>
+                    <select
+                      value={formStdGender}
+                      onChange={(e) => setFormStdGender(e.target.value as Gender)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    >
+                      <option value="">-- Pilih Jenis Kelamin --</option>
+                      <option value="Laki-laki">Laki-laki</option>
+                      <option value="Perempuan">Perempuan</option>
+                    </select>
                   </div>
 
                   <div>
@@ -3651,6 +3758,19 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Jenis Kelamin</label>
+                    <select
+                      value={editStdGender}
+                      onChange={(e) => setEditStdGender(e.target.value as Gender)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    >
+                      <option value="">-- Pilih Jenis Kelamin --</option>
+                      <option value="Laki-laki">Laki-laki</option>
+                      <option value="Perempuan">Perempuan</option>
+                    </select>
                   </div>
 
                   {!isWaliKelas && (
@@ -4461,6 +4581,19 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                   </div>
 
                   <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Jenis Kelamin</label>
+                    <select
+                      value={formUsrGender}
+                      onChange={(e) => setFormUsrGender(e.target.value as Gender)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    >
+                      <option value="">-- Pilih Jenis Kelamin --</option>
+                      <option value="Laki-laki">Laki-laki</option>
+                      <option value="Perempuan">Perempuan</option>
+                    </select>
+                  </div>
+
+                  <div>
                     <label className="text-gray-700 block mb-1 font-semibold">NIP / ID Pegawai</label>
                     <input
                       type="text"
@@ -4680,6 +4813,19 @@ export const MemberManager: React.FC<MemberManagerProps> = ({
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-700 block mb-1 font-semibold">Jenis Kelamin</label>
+                    <select
+                      value={editUsrGender}
+                      onChange={(e) => setEditUsrGender(e.target.value as Gender)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-blue-600 shadow-sm"
+                    >
+                      <option value="">-- Pilih Jenis Kelamin --</option>
+                      <option value="Laki-laki">Laki-laki</option>
+                      <option value="Perempuan">Perempuan</option>
+                    </select>
                   </div>
 
                   <div>

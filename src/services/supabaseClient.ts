@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Student, AttendanceLog, MessageTemplate, WaQueueItem, SupabaseConfig, StatusCategory, Rombel, AppUser, UserRole, Holiday, KalenderPendidikan, JadwalPelajaran, JadwalHari, Announcement, AnnouncementCategory, StudentPoint, PointActionType, LeaveRequest, LeaveRequestStatus } from '../types';
+import { Student, Gender, AttendanceLog, MessageTemplate, WaQueueItem, SupabaseConfig, StatusCategory, Rombel, AppUser, UserRole, Holiday, KalenderPendidikan, JadwalPelajaran, JadwalHari, Announcement, AnnouncementCategory, StudentPoint, PointActionType, LeaveRequest, LeaveRequestStatus } from '../types';
 import { INITIAL_TEMPLATES } from '../data/initialData';
 import { DEFAULT_SCHEDULE_1A } from '../data/defaultSchedules';
 
@@ -10,7 +10,36 @@ export const ROMBEL_CACHE_STORAGE_KEY = 'smart_presensi_rombel_cache_v1';
 export const WALI_KELAS_MAP_STORAGE_KEY = 'smart_presensi_wali_kelas_map_v1';
 export const STUDENT_WALI_MAP_STORAGE_KEY = 'smart_presensi_student_wali_map_v1';
 export const STUDENT_AVATAR_MAP_STORAGE_KEY = 'smart_presensi_student_avatar_map_v1';
+export const STUDENT_GENDER_MAP_STORAGE_KEY = 'smart_presensi_student_gender_map_v1';
 export const USER_PROFILE_EXTRAS_STORAGE_KEY = 'smart_presensi_user_profile_extras_v1';
+
+export const normalizeGender = (value?: unknown): Gender => {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw || raw === '-' || raw === 'null' || raw === 'undefined') return '';
+  if (
+    raw === 'l' ||
+    raw === 'lk' ||
+    raw === 'laki' ||
+    raw === 'laki-laki' ||
+    raw === 'laki laki' ||
+    raw === 'pria' ||
+    raw === 'male' ||
+    raw === 'm'
+  ) {
+    return 'Laki-laki';
+  }
+  if (
+    raw === 'p' ||
+    raw === 'pr' ||
+    raw === 'perempuan' ||
+    raw === 'wanita' ||
+    raw === 'female' ||
+    raw === 'f'
+  ) {
+    return 'Perempuan';
+  }
+  return '';
+};
 
 export const DEFAULT_JADWAL_HARIAN: Record<string, JadwalHari> = {
   Senin: { aktif: true, masuk: '07:00', telat: '07:15', pulang: '14:00' },
@@ -205,7 +234,37 @@ class SupabaseService {
     }
   }
 
-  public getUserProfileExtrasMap(): Record<string, { avatarUrl?: string; avatarColor?: string }> {
+  public getStudentGenderMap(): Record<string, Gender> {
+    try {
+      const raw = localStorage.getItem(STUDENT_GENDER_MAP_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return {};
+  }
+
+  public saveStudentGender(studentId: string, gender: Gender | undefined): void {
+    if (!studentId) return;
+    try {
+      const map = this.getStudentGenderMap();
+      const normalized = normalizeGender(gender);
+      if (normalized) {
+        map[String(studentId)] = normalized;
+      } else {
+        delete map[String(studentId)];
+      }
+      localStorage.setItem(STUDENT_GENDER_MAP_STORAGE_KEY, JSON.stringify(map));
+      this.syncMetadataMapsToCloud(undefined, undefined, undefined, undefined, map);
+    } catch {
+      // ignore
+    }
+  }
+
+  public getUserProfileExtrasMap(): Record<string, { avatarUrl?: string; avatarColor?: string; gender?: Gender }> {
     try {
       const raw = localStorage.getItem(USER_PROFILE_EXTRAS_STORAGE_KEY);
       if (raw) {
@@ -221,14 +280,14 @@ class SupabaseService {
   public saveUserProfileExtras(
     userId: string | undefined,
     username: string | undefined,
-    extras: { avatarUrl?: string; avatarColor?: string }
+    extras: { avatarUrl?: string; avatarColor?: string; gender?: Gender }
   ): void {
     try {
       const map = this.getUserProfileExtrasMap();
-      const payload = {
-        avatarUrl: extras.avatarUrl !== undefined ? extras.avatarUrl.trim() : undefined,
-        avatarColor: extras.avatarColor !== undefined ? extras.avatarColor.trim() : undefined,
-      };
+      const payload: { avatarUrl?: string; avatarColor?: string; gender?: Gender } = {};
+      if (extras.avatarUrl !== undefined) payload.avatarUrl = extras.avatarUrl.trim();
+      if (extras.avatarColor !== undefined) payload.avatarColor = extras.avatarColor.trim();
+      if (extras.gender !== undefined) payload.gender = normalizeGender(extras.gender);
       if (userId) {
         map[String(userId)] = { ...(map[String(userId)] || {}), ...payload };
       }
@@ -246,8 +305,9 @@ class SupabaseService {
   private async syncMetadataMapsToCloud(
     waliMapUpdate?: Record<string, string>,
     studentWaliMapUpdate?: Record<string, string>,
-    profileExtrasUpdate?: Record<string, { avatarUrl?: string; avatarColor?: string }>,
-    studentAvatarMapUpdate?: Record<string, string>
+    profileExtrasUpdate?: Record<string, { avatarUrl?: string; avatarColor?: string; gender?: Gender }>,
+    studentAvatarMapUpdate?: Record<string, string>,
+    studentGenderMapUpdate?: Record<string, Gender>
   ): Promise<void> {
     try {
       const { data: existingRow } = await this.client
@@ -265,6 +325,7 @@ class SupabaseService {
       const nextStudentWaliMap = studentWaliMapUpdate || this.getStudentWaliMap();
       const nextProfileExtrasMap = profileExtrasUpdate || this.getUserProfileExtrasMap();
       const nextStudentAvatarMap = studentAvatarMapUpdate || this.getStudentAvatarMap();
+      const nextStudentGenderMap = studentGenderMapUpdate || this.getStudentGenderMap();
 
       await this.client
         .from('app_settings')
@@ -275,6 +336,7 @@ class SupabaseService {
             studentWaliMap: nextStudentWaliMap,
             userProfileExtrasMap: nextProfileExtrasMap,
             studentAvatarMap: nextStudentAvatarMap,
+            studentGenderMap: nextStudentGenderMap,
           },
           updated_at: new Date().toISOString(),
         })
@@ -309,6 +371,10 @@ class SupabaseService {
           const mergedAvatars = { ...tc.studentAvatarMap, ...this.getStudentAvatarMap() };
           localStorage.setItem(STUDENT_AVATAR_MAP_STORAGE_KEY, JSON.stringify(mergedAvatars));
         }
+        if (tc.studentGenderMap && typeof tc.studentGenderMap === 'object') {
+          const mergedGenders = { ...tc.studentGenderMap, ...this.getStudentGenderMap() };
+          localStorage.setItem(STUDENT_GENDER_MAP_STORAGE_KEY, JSON.stringify(mergedGenders));
+        }
       }
     } catch {
       // ignore
@@ -325,6 +391,7 @@ class SupabaseService {
       ]);
       const studentWaliMap = this.getStudentWaliMap();
       const studentAvatarMap = this.getStudentAvatarMap();
+      const studentGenderMap = this.getStudentGenderMap();
       if (!error && data) {
         return data.map((item: any) => {
           const cleanUid = String(
@@ -349,6 +416,11 @@ class SupabaseService {
           const cachedAvatar = studentAvatarMap[String(item.id)] || undefined;
           const resolvedAvatarUrl = dbAvatar || cachedAvatar || undefined;
 
+          // Utamakan kolom gender langsung dari tabel public.students di Supabase
+          const dbGender = normalizeGender(item.gender ?? item.jenis_kelamin);
+          const cachedGender = normalizeGender(studentGenderMap[String(item.id)]);
+          const resolvedGender: Gender = dbGender || cachedGender || '';
+
           // Jika kolom avatar_url sudah ada di tabel public.students namun masih kosong sementara ada di cache, sinkronkan otomatis ke kolom DB
           if ('avatar_url' in item && !dbAvatar && cachedAvatar && item.id) {
             void this.client
@@ -357,11 +429,19 @@ class SupabaseService {
               .eq('id', item.id);
           }
 
+          if ('gender' in item && !dbGender && cachedGender && item.id) {
+            void this.client
+              .from('students')
+              .update({ gender: cachedGender })
+              .eq('id', item.id);
+          }
+
           return {
             ...item,
             uid_kartu: cleanUid,
             rfid_uid: String(item.rfid_uid || cleanUid).trim(),
             nisn: cleanNisn,
+            gender: resolvedGender,
             nama_wali: resolvedNamaWali,
             avatar_url: resolvedAvatarUrl,
             rombel_id: matchedRombel ? matchedRombel.id : rmbId,
@@ -466,6 +546,8 @@ class SupabaseService {
     const rawNisn = (student.nisn || '').trim();
     const cleanNisn = rawNisn !== '' ? rawNisn : null;
     const cleanAvatar = (student.avatar_url || '').trim() || null;
+    const normalizedGender = normalizeGender(student.gender);
+    const cleanGender = normalizedGender || null;
     const resolvedClassId = student.rombel_id || student.class_id || null;
 
     const baseRow: Record<string, any> = {
@@ -473,13 +555,14 @@ class SupabaseService {
       rfid_uid: cleanUid,
       nisn: cleanNisn,
       nama: student.nama.trim(),
+      gender: cleanGender,
       no_wa_wali: student.no_wa_wali.trim(),
       rombel_id: resolvedClassId,
       ...(cleanAvatar ? { avatar_url: cleanAvatar } : {}),
     };
 
     try {
-      // 1. Try inserting with avatar_url + rombel_id + rfid_uid
+      // 1. Try inserting with gender + avatar_url + rombel_id + rfid_uid
       const { data: dataWithAvatar, error: errWithAvatar } = await this.client
         .from('students')
         .insert([baseRow])
@@ -490,18 +573,23 @@ class SupabaseService {
         if (cleanAvatar && dataWithAvatar.id) {
           await this.saveStudentAvatar(String(dataWithAvatar.id), cleanAvatar);
         }
+        if (normalizedGender && dataWithAvatar.id) {
+          this.saveStudentGender(String(dataWithAvatar.id), normalizedGender);
+        }
         this.notify();
         return {
           ...dataWithAvatar,
+          gender: normalizeGender(dataWithAvatar.gender) || normalizedGender,
           avatar_url: dataWithAvatar.avatar_url || cleanAvatar || undefined,
         } as Student;
       }
 
-      // 2. Try schema variant using class_id (without rfid_uid) + avatar_url
+      // 2. Try schema variant using class_id (without rfid_uid) + gender + avatar_url
       const schemaRowWithAvatar: Record<string, any> = {
         uid_kartu: cleanUid,
         nisn: cleanNisn,
         nama: student.nama.trim(),
+        gender: cleanGender,
         no_wa_wali: student.no_wa_wali.trim(),
         class_id: resolvedClassId,
         ...(cleanAvatar ? { avatar_url: cleanAvatar } : {}),
@@ -516,20 +604,40 @@ class SupabaseService {
         if (cleanAvatar && dataClassIdAvatar.id) {
           await this.saveStudentAvatar(String(dataClassIdAvatar.id), cleanAvatar);
         }
+        if (normalizedGender && dataClassIdAvatar.id) {
+          this.saveStudentGender(String(dataClassIdAvatar.id), normalizedGender);
+        }
         this.notify();
         return {
           ...dataClassIdAvatar,
+          gender: normalizeGender(dataClassIdAvatar.gender) || normalizedGender,
           avatar_url: dataClassIdAvatar.avatar_url || cleanAvatar || undefined,
         } as Student;
       }
 
-      // 3. Fallback if avatar_url column hasn't been added via ALTER TABLE yet
-      const { avatar_url: _omittedAvatar, ...rowWithoutAvatar } = baseRow;
-      const { data, error } = await this.client
+      // 3. Fallback if optional columns (avatar_url / gender) haven't been added via ALTER TABLE yet
+      const { avatar_url: _omittedAvatar, gender: _omittedGender, ...rowMinimal } = baseRow;
+      let { data, error } = await this.client
         .from('students')
-        .insert([rowWithoutAvatar])
+        .insert([rowMinimal])
         .select()
         .single();
+
+      if (error) {
+        // Try class_id minimal schema fallback
+        const {
+          avatar_url: _omittedAvatar2,
+          gender: _omittedGender2,
+          ...classIdMinimal
+        } = schemaRowWithAvatar;
+        const retryClassId = await this.client
+          .from('students')
+          .insert([classIdMinimal])
+          .select()
+          .single();
+        data = retryClassId.data;
+        error = retryClassId.error;
+      }
 
       if (error) {
         throw new Error(error.message);
@@ -538,15 +646,24 @@ class SupabaseService {
       if (data) {
         if (cleanAvatar && data.id) {
           await this.saveStudentAvatar(String(data.id), cleanAvatar);
-          // Attempt isolated avatar_url update in case insert rejected another optional column
           await this.client
             .from('students')
             .update({ avatar_url: cleanAvatar })
             .eq('id', data.id);
         }
+        if (data.id) {
+          this.saveStudentGender(String(data.id), normalizedGender);
+          if (cleanGender) {
+            await this.client
+              .from('students')
+              .update({ gender: cleanGender })
+              .eq('id', data.id);
+          }
+        }
         this.notify();
         return {
           ...data,
+          gender: normalizedGender,
           avatar_url: cleanAvatar || undefined,
         } as Student;
       }
@@ -576,6 +693,7 @@ class SupabaseService {
     id: string,
     updates: {
       nama: string;
+      gender?: Gender;
       nama_wali?: string;
       uid_kartu?: string;
       rfid_uid?: string;
@@ -594,12 +712,18 @@ class SupabaseService {
     const cleanNisn = rawNisn !== '' ? rawNisn : null;
     const cleanAvatar =
       updates.avatar_url !== undefined ? updates.avatar_url.trim() || null : undefined;
+    const hasGenderUpdate = updates.gender !== undefined;
+    const normalizedGender = hasGenderUpdate ? normalizeGender(updates.gender) : undefined;
+    const cleanGender = hasGenderUpdate ? normalizedGender || null : undefined;
 
     if (updates.nama_wali !== undefined) {
       this.saveStudentNamaWali(id, updates.nama_wali);
     }
     if (updates.avatar_url !== undefined) {
       await this.saveStudentAvatar(id, updates.avatar_url);
+    }
+    if (hasGenderUpdate) {
+      this.saveStudentGender(id, normalizedGender);
     }
 
     try {
@@ -617,53 +741,70 @@ class SupabaseService {
       }
       if (updates.nis !== undefined) basePayload.nis = updates.nis || null;
 
-      // 1. Primary update including avatar_url directly
-      if (cleanAvatar !== undefined) {
-        const tryWithAvatar = await this.client
-          .from('students')
-          .update({
-            ...basePayload,
-            avatar_url: cleanAvatar,
-          })
-          .eq('id', id);
+      const fullPayload: Record<string, any> = {
+        ...basePayload,
+        ...(hasGenderUpdate ? { gender: cleanGender } : {}),
+        ...(cleanAvatar !== undefined ? { avatar_url: cleanAvatar } : {}),
+      };
 
-        if (!tryWithAvatar.error) {
-          this.notify();
-          return true;
-        }
+      // 1. Primary update including gender + avatar_url directly
+      const tryPrimary = await this.client
+        .from('students')
+        .update(fullPayload)
+        .eq('id', id);
 
-        // 2. If basePayload had rfid_uid / rombel_id mismatch with class_id schema, try core fields + avatar_url
-        const corePayloadWithAvatar: Record<string, any> = {
-          nama: updates.nama.trim(),
-          no_wa_wali: updates.no_wa_wali.trim(),
-          ...(cleanUid ? { uid_kartu: cleanUid } : {}),
-          ...(updates.nisn !== undefined ? { nisn: cleanNisn } : {}),
-          ...(updates.rombel_id !== undefined || updates.class_id !== undefined
-            ? { class_id: updates.rombel_id || updates.class_id || null }
-            : {}),
-          avatar_url: cleanAvatar,
-        };
-        const tryCoreWithAvatar = await this.client
-          .from('students')
-          .update(corePayloadWithAvatar)
-          .eq('id', id);
-
-        if (!tryCoreWithAvatar.error) {
-          this.notify();
-          return true;
-        }
+      if (!tryPrimary.error) {
+        this.notify();
+        return true;
       }
 
-      // 3. Fallback update without avatar_url if column not yet migrated, plus isolated avatar_url update attempt
-      const { error } = await this.client
+      // 2. If basePayload had rfid_uid / rombel_id mismatch with class_id schema, try core fields + gender + avatar_url
+      const corePayload: Record<string, any> = {
+        nama: updates.nama.trim(),
+        no_wa_wali: updates.no_wa_wali.trim(),
+        ...(cleanUid ? { uid_kartu: cleanUid } : {}),
+        ...(updates.nisn !== undefined ? { nisn: cleanNisn } : {}),
+        ...(updates.rombel_id !== undefined || updates.class_id !== undefined
+          ? { class_id: updates.rombel_id || updates.class_id || null }
+          : {}),
+        ...(hasGenderUpdate ? { gender: cleanGender } : {}),
+        ...(cleanAvatar !== undefined ? { avatar_url: cleanAvatar } : {}),
+      };
+      const tryCore = await this.client
+        .from('students')
+        .update(corePayload)
+        .eq('id', id);
+
+      if (!tryCore.error) {
+        this.notify();
+        return true;
+      }
+
+      // 3. Fallback update without optional columns (gender / avatar_url) if not yet migrated, plus isolated updates
+      let { error } = await this.client
         .from('students')
         .update(basePayload)
         .eq('id', id);
+
+      if (error) {
+        const { gender: _g, avatar_url: _a, ...coreMinimal } = corePayload;
+        const retryCoreMinimal = await this.client
+          .from('students')
+          .update(coreMinimal)
+          .eq('id', id);
+        error = retryCoreMinimal.error;
+      }
 
       if (cleanAvatar !== undefined) {
         await this.client
           .from('students')
           .update({ avatar_url: cleanAvatar })
+          .eq('id', id);
+      }
+      if (hasGenderUpdate) {
+        await this.client
+          .from('students')
+          .update({ gender: cleanGender })
           .eq('id', id);
       }
 
@@ -1853,11 +1994,15 @@ class SupabaseService {
     const cleanAssigned =
       role === 'Wali Kelas' && rawAssignedClass ? String(rawAssignedClass).trim() : undefined;
 
+    const resolvedGender: Gender =
+      normalizeGender(item.gender ?? item.jenis_kelamin) || normalizeGender(extraByUser.gender);
+
     return {
       id: String(item.id),
       username: cleanUsername,
       password: item.password !== undefined && item.password !== null ? String(item.password) : '',
       nama_lengkap: String(item.nama_lengkap || cleanUsername),
+      gender: resolvedGender,
       nip: item.nip ? String(item.nip) : '',
       role,
       status: item.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif',
@@ -1980,6 +2125,7 @@ class SupabaseService {
           ? (user.assignedClass || user.assigned_class || user.rombel || '').trim()
           : '';
       const rawAvatar = (user.avatar_url ?? user.avatarUrl ?? '').trim();
+      const normalizedGender = normalizeGender(user.gender);
 
       if (resolvedRole === 'Wali Kelas' && assignedClassVal) {
         this.saveWaliKelasAssignment(undefined, cleanUsername, assignedClassVal);
@@ -1989,6 +2135,7 @@ class SupabaseService {
         username: cleanUsername,
         password: (user.password || '').trim(),
         nama_lengkap: (user.nama_lengkap || '').trim(),
+        gender: normalizedGender || null,
         nip: user.nip ? user.nip.trim() : null,
         role: resolvedRole,
         status: user.status || 'Aktif',
@@ -1998,7 +2145,7 @@ class SupabaseService {
         basePayload.avatar_url = rawAvatar;
       }
 
-      // Coba insert lengkap dengan assigned_class
+      // Coba insert lengkap dengan assigned_class & gender
       if (resolvedRole === 'Wali Kelas' && assignedClassVal) {
         const tryWithCol = await this.client
           .from('app_users')
@@ -2008,23 +2155,42 @@ class SupabaseService {
 
         if (!tryWithCol.error && tryWithCol.data) {
           this.saveWaliKelasAssignment(String(tryWithCol.data.id), cleanUsername, assignedClassVal);
+          if (normalizedGender) {
+            this.saveUserProfileExtras(String(tryWithCol.data.id), cleanUsername, { gender: normalizedGender });
+          }
           this.notify();
           return this.mapAppUserRow(tryWithCol.data);
         }
       }
 
-      const { data, error } = await this.client
+      let { data, error } = await this.client
         .from('app_users')
         .insert([basePayload])
         .select('*')
         .single();
+
+      // Fallback jika kolom gender belum ditambahkan via ALTER TABLE
+      if (error) {
+        const { gender: _omitGender, ...payloadWithoutGender } = basePayload;
+        const retry = await this.client
+          .from('app_users')
+          .insert([payloadWithoutGender])
+          .select('*')
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (error) throw new Error(error.message);
       if (data) {
         if (resolvedRole === 'Wali Kelas' && assignedClassVal) {
           this.saveWaliKelasAssignment(String(data.id), cleanUsername, assignedClassVal);
         }
+        if (normalizedGender) {
+          this.saveUserProfileExtras(String(data.id), cleanUsername, { gender: normalizedGender });
+        }
         this.notify();
-        return this.mapAppUserRow(data);
+        return this.mapAppUserRow({ ...data, gender: data.gender ?? normalizedGender });
       }
     } catch (err: any) {
       console.error('Error adding app user to Supabase:', err);
@@ -2039,6 +2205,7 @@ class SupabaseService {
       username: string;
       password?: string;
       nama_lengkap: string;
+      gender?: Gender;
       nip?: string;
       role: AppUser['role'];
       status: AppUser['status'];
@@ -2069,10 +2236,13 @@ class SupabaseService {
       const resolvedAvatarUrl = hasAvatarUpdate
         ? (updates.avatar_url ?? updates.avatarUrl ?? '').trim() || null
         : undefined;
+      const hasGenderUpdate = updates.gender !== undefined;
+      const normalizedGender = hasGenderUpdate ? normalizeGender(updates.gender) : undefined;
 
-      if (hasAvatarUpdate) {
+      if (hasAvatarUpdate || hasGenderUpdate) {
         this.saveUserProfileExtras(cleanId, cleanUsername, {
-          avatarUrl: resolvedAvatarUrl || '',
+          ...(hasAvatarUpdate ? { avatarUrl: resolvedAvatarUrl || '' } : {}),
+          ...(hasGenderUpdate ? { gender: normalizedGender } : {}),
         });
       }
 
@@ -2082,6 +2252,9 @@ class SupabaseService {
         role: resolvedRole,
         status: isMasterAccount ? 'Aktif' : updates.status,
       };
+      if (hasGenderUpdate) {
+        basePayload.gender = normalizedGender || null;
+      }
       if (updates.nip !== undefined) {
         basePayload.nip = updates.nip.trim() || null;
       }
@@ -2137,12 +2310,18 @@ class SupabaseService {
         }
       }
 
-      // 2. Update langsung dengan basePayload (username, password, nama_lengkap, nip, avatar_url, role, status)
+      // 2. Update langsung dengan basePayload (username, password, nama_lengkap, gender, nip, avatar_url, role, status)
       const okWithBase = await executeUpdateOnAppUsers(basePayload);
-      if (!okWithBase && hasAvatarUpdate) {
+      if (!okWithBase && (hasAvatarUpdate || hasGenderUpdate)) {
         // Fallback jika terjadi kendala skema pada kolom opsional
-        const { avatar_url: _omitAvatar, ...minimalPayload } = basePayload;
+        const { avatar_url: _omitAvatar, gender: _omitGender, ...minimalPayload } = basePayload;
         await executeUpdateOnAppUsers(minimalPayload);
+        if (hasAvatarUpdate) {
+          await executeUpdateOnAppUsers({ avatar_url: resolvedAvatarUrl });
+        }
+        if (hasGenderUpdate) {
+          await executeUpdateOnAppUsers({ gender: normalizedGender || null });
+        }
       }
 
       this.notify();
@@ -2678,6 +2857,9 @@ class SupabaseService {
           no_wa_wali: String(row.no_wa_wali || '').trim(),
           rombel_id: safeRombelId,
           ...(row.avatar_url ? { avatar_url: String(row.avatar_url).trim() } : {}),
+          ...(normalizeGender(row.gender ?? row.jenis_kelamin)
+            ? { gender: normalizeGender(row.gender ?? row.jenis_kelamin) }
+            : {}),
         };
         if (row.id) item.id = String(row.id);
         if (row.created_at) item.created_at = row.created_at;
@@ -2705,6 +2887,9 @@ class SupabaseService {
               ? String(row.password)
               : '123456',
           nama_lengkap: String(row.nama_lengkap || uname).trim(),
+          ...(normalizeGender(row.gender ?? row.jenis_kelamin)
+            ? { gender: normalizeGender(row.gender ?? row.jenis_kelamin) }
+            : {}),
           nip: row.nip ? String(row.nip).trim() : null,
           role: this.normalizeUserRole(row.role, isMaster),
           status: row.status === 'Nonaktif' && !isMaster ? 'Nonaktif' : 'Aktif',
